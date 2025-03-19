@@ -10,9 +10,9 @@ USE biomappings_db;
 
 DROP TABLE IF EXISTS curators;
 CREATE TABLE curators (
-    user VARCHAR NOT NULL,
-    orcid VARCHAR NOT NULL,
-    name VARCHAR NOT NULL
+    user TEXT NOT NULL,
+    orcid TEXT NOT NULL,
+    name TEXT NOT NULL
 );
 
 COPY curators
@@ -31,17 +31,17 @@ FROM '/Users/m.anselmi/repos/biomappings/src/biomappings/resources/curators.tsv'
 
 DROP TABLE IF EXISTS incorrect;
 CREATE TABLE incorrect (
-    source_prefix VARCHAR NOT NULL,
-    source_identifier VARCHAR NOT NULL,
-    source_name VARCHAR NOT NULL,
-    relation VARCHAR NOT NULL,
-    target_prefix VARCHAR NOT NULL,
-    target_identifier VARCHAR NOT NULL,
-    target_name VARCHAR NOT NULL,
-    type VARCHAR NOT NULL,
-    source VARCHAR NOT NULL,
-    prediction_type VARCHAR,
-    prediction_source VARCHAR,
+    source_prefix TEXT NOT NULL,
+    source_identifier TEXT NOT NULL,
+    source_name TEXT NOT NULL,
+    relation TEXT NOT NULL,
+    target_prefix TEXT NOT NULL,
+    target_identifier TEXT NOT NULL,
+    target_name TEXT NOT NULL,
+    type TEXT NOT NULL,
+    source TEXT NOT NULL,
+    prediction_type TEXT,
+    prediction_source TEXT,
     prediction_confidence DOUBLE
 );
 
@@ -61,17 +61,17 @@ FROM '/Users/m.anselmi/repos/biomappings/src/biomappings/resources/incorrect.tsv
 
 DROP TABLE IF EXISTS mappings;
 CREATE TABLE mappings (
-    source_prefix VARCHAR NOT NULL,
-    source_identifier VARCHAR NOT NULL,
-    source_name VARCHAR NOT NULL,
-    relation VARCHAR NOT NULL,
-    target_prefix VARCHAR NOT NULL,
-    target_identifier VARCHAR NOT NULL,
-    target_name VARCHAR,
-    type VARCHAR NOT NULL,
-    source VARCHAR NOT NULL,
-    prediction_type VARCHAR,
-    prediction_source VARCHAR,
+    source_prefix TEXT NOT NULL,
+    source_identifier TEXT NOT NULL,
+    source_name TEXT NOT NULL,
+    relation TEXT NOT NULL,
+    target_prefix TEXT NOT NULL,
+    target_identifier TEXT NOT NULL,
+    target_name TEXT,
+    type TEXT NOT NULL,
+    source TEXT NOT NULL,
+    prediction_type TEXT,
+    prediction_source TEXT,
     prediction_confidence DOUBLE
 );
 
@@ -94,16 +94,16 @@ FROM '/Users/m.anselmi/repos/biomappings/src/biomappings/resources/mappings.tsv'
 
 DROP TABLE IF EXISTS predictions;
 CREATE TABLE predictions (
-    source_prefix VARCHAR NOT NULL,
-    source_identifier VARCHAR NOT NULL,
-    source_name VARCHAR NOT NULL,
-    relation VARCHAR NOT NULL,
-    target_prefix VARCHAR NOT NULL,
-    target_identifier VARCHAR NOT NULL,
-    target_name VARCHAR NOT NULL,
-    type VARCHAR NOT NULL,
+    source_prefix TEXT NOT NULL,
+    source_identifier TEXT NOT NULL,
+    source_name TEXT NOT NULL,
+    relation TEXT NOT NULL,
+    target_prefix TEXT NOT NULL,
+    target_identifier TEXT NOT NULL,
+    target_name TEXT NOT NULL,
+    type TEXT NOT NULL,
     confidence DOUBLE NOT NULL,
-    source VARCHAR NOT NULL
+    source TEXT NOT NULL
 );
 
 COPY predictions
@@ -122,17 +122,17 @@ FROM '/Users/m.anselmi/repos/biomappings/src/biomappings/resources/predictions.t
 
 DROP TABLE IF EXISTS unsure;
 CREATE TABLE unsure (
-    source_prefix VARCHAR NOT NULL,
-    source_identifier VARCHAR NOT NULL,
-    source_name VARCHAR NOT NULL,
-    relation VARCHAR NOT NULL,
-    target_prefix VARCHAR NOT NULL,
-    target_identifier VARCHAR NOT NULL,
-    target_name VARCHAR,
-    type VARCHAR NOT NULL,
-    source VARCHAR NOT NULL,
-    prediction_type VARCHAR,
-    prediction_source VARCHAR,
+    source_prefix TEXT NOT NULL,
+    source_identifier TEXT NOT NULL,
+    source_name TEXT NOT NULL,
+    relation TEXT NOT NULL,
+    target_prefix TEXT NOT NULL,
+    target_identifier TEXT NOT NULL,
+    target_name TEXT,
+    type TEXT NOT NULL,
+    source TEXT NOT NULL,
+    prediction_type TEXT,
+    prediction_source TEXT,
     prediction_confidence DOUBLE
 );
 
