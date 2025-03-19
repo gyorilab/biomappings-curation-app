@@ -1,0 +1,418 @@
+# vim: set ft=gitignore :
+
+
+# To learn more about gitignore files, please see:
+#
+#   https://git-scm.com/docs/gitignore
+#
+# The following command pipeline prints all distinct file extensions, or filenames if the filename
+# has no extension:
+#
+#   find -- . -type d -name .git -prune -o \! -type d -print0 \
+#     | gawk -v RS='\0' -v ORS='\0' -- '{ match($0, /\/([^\/]+)$/, a); s = a[1]; print match(s, /(\.[^.]+)$/, a) ? a[1] : s }' \
+#     | sort -fuz \
+#     | gawk -v RS='\0' -v ORS='\n' -- '{ print gensub(/[^[:print:]]+/, "�", "g") }'
+#
+# The following command pipeline prints a four-column table that may be useful for debugging
+# gitignore patterns:
+#
+#   find -- . -type d -name .git -prune -o \! -type d -print0 \
+#     | sort -fz \
+#     | git check-ignore -nvz --no-index --stdin \
+#     | gawk -v RS='\0' -v ORS='\n' -- '{ print gensub(/[^[:print:]]+/, "�", "g") }' \
+#     | paste -s -d '\t\t\t\n' -- - \
+#     | awk -v FS='\t' -v OFS='\t' -- '{ print $4, $1, $2, $3 }' \
+#     | column -t -s $'\t'
+#
+# The four columns:
+#
+#   (1) path of a file being queried
+#   (2) pattern's source file
+#   (3) line number of the pattern within that source
+#   (4) matching pattern
+#
+# If some file does not match a gitignore pattern, then all columns except (1) will be empty.
+#
+# To learn more about Git's `check-ignore` subcommand, please see:
+#
+#   https://git-scm.com/docs/git-check-ignore
+
+# ⚠️ Add project-specific patterns at the bottom of the file. ⚠️
+
+# Archives
+#   https://github.com/github/gitignore/blob/main/Global/Archives.gitignore
+*.7z
+*.bz2
+*.bzip
+*.bzip2
+*.cab
+*.deb
+*.dmg
+*.egg
+*.gem
+*.gz
+*.gzip
+*.iso
+*.jar
+*.lzma
+*.msi
+*.msm
+*.msp
+*.rar
+*.rpm
+*.tar
+*.tgz
+*.txz
+*.xar
+*.xpi
+*.xz
+*.zip
+
+# Backup
+#   https://github.com/github/gitignore/blob/main/Global/Backup.gitignore
+*.bak
+*.gho
+*.ori
+*.orig
+*.tmp
+
+# Cache
+.*[-_]cache/
+.cache/
+
+# dbt
+#   https://docs.getdbt.com/faqs/Git/gitignore
+dbt_modules/
+dbt_packages/
+logs/
+target/
+
+# DuckDB
+#   https://github.com/duckdb/duckdb#readme
+*.wal
+
+# Java
+#   https://github.com/github/gitignore/blob/main/Java.gitignore
+*.class
+*.ctxt
+*.ear
+*.jar
+*.log
+*.nar
+*.rar
+*.tar.gz
+*.war
+*.zip
+.mtj.tmp/
+hs_err_pid*
+replay_pid*
+
+# JBoss
+#   https://github.com/github/gitignore/blob/main/JBoss.gitignore
+*.DEPLOYED
+jboss/server/all/data/
+jboss/server/all/deploy/project.ext
+jboss/server/all/log/*.log
+jboss/server/all/tmp/
+jboss/server/all/work/
+jboss/server/default/data/
+jboss/server/default/deploy/project.ext
+jboss/server/default/log/*.log
+jboss/server/default/tmp/
+jboss/server/default/work/
+jboss/server/minimal/data/
+jboss/server/minimal/deploy/project.ext
+jboss/server/minimal/log/*.log
+jboss/server/minimal/tmp/
+jboss/server/minimal/work/
+
+# JetBrains
+#   https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
+*.iws
+.*_helpers/
+.idea/**/aws.xml
+.idea/**/contentModel.xml
+.idea/**/dataSources.ids
+.idea/**/dataSources.local.xml
+.idea/**/dataSources/
+.idea/**/dbnavigator.xml
+.idea/**/dictionaries
+.idea/**/dynamic.xml
+.idea/**/gradle.xml
+.idea/**/libraries
+.idea/**/mongoSettings.xml
+.idea/**/shelf
+.idea/**/sqlDataSources.xml
+.idea/**/tasks.xml
+.idea/**/uiDesigner.xml
+.idea/**/usage.statistics.xml
+.idea/**/workspace.xml
+.idea/caches/build_file_checksums.ser
+.idea/httpRequests
+.idea/replstate.xml
+.idea/sonarlint/
+.idea_modules/
+atlassian-ide-plugin.xml
+cmake-build-*/
+com_crashlytics_export_strings.xml
+crashlytics-build.properties
+crashlytics.properties
+fabric.properties
+out/
+
+# Linux
+#   https://github.com/github/gitignore/blob/main/Global/Linux.gitignore
+*~
+.directory
+.fuse_hidden*
+.nfs*
+.Trash/
+.Trash-*/
+
+# macOS
+#   https://github.com/github/gitignore/blob/main/Global/macOS.gitignore
+.apdisk
+.AppleDB/
+.AppleDesktop/
+.AppleDouble/
+.com.apple.timemachine.donotpresent
+.com.apple.timemachine.supported
+.DocumentRevisions-V100/
+.DS_Store
+.fseventsd/
+.localized
+.LSOverride
+.Spotlight-V100/
+.TemporaryItems/
+.Trashes/
+.VolumeIcon.icns
+._*
+Icon[]
+Network Trash Folder/
+Temporary Items/
+
+# Maven
+#   https://github.com/github/gitignore/blob/main/Maven.gitignore
+.classpath
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+.project
+buildNumber.properties
+dependency-reduced-pom.xml
+pom.xml.next
+pom.xml.releaseBackup
+pom.xml.tag
+pom.xml.versionsBackup
+release.properties
+target/
+
+# Nextflow
+#   https://www.nextflow.io
+.nextflow/*
+!.nextflow/config
+.nextflow?*
+dag-*.html
+report-*.html
+timeline-*.html
+trace-*.txt
+work/
+
+# Obsidian
+#   https://help.obsidian.md/Files+and+folders/How+Obsidian+stores+data#Vault+settings
+**/.obsidian/workspace.json
+
+# Pixi
+#   https://pixi.sh
+.pixi/
+
+# Python
+#   https://github.com/github/gitignore/blob/main/Python.gitignore
+*$py.class
+*.cover
+*.egg
+*.egg-info/
+*.log
+*.manifest
+*.mo
+*.pot
+*.py,cover
+*.py[cod]
+*.sage.py
+*.so
+*.spec
+.cache
+.coverage
+.coverage[-._]*
+.dmypy.json
+.eggs/
+.env
+.env/
+.envs/
+.hypothesis/
+.installed.cfg
+.ipynb_checkpoints/
+.mypy_cache/
+.nox/
+.pdm.toml
+.pybuilder/
+.pyre/
+.pytest_cache/
+.Python
+.pytype/
+.ropeproject
+.ruff_cache/
+.scrapy
+.spyderproject
+.spyproject
+.tox/
+.venv
+.venv/
+.venvs/
+.virtualenv/
+.virtualenvs/
+.webassets-cache
+/site/
+build/
+celerybeat-schedule
+celerybeat.pid
+cover/
+coverage.xml
+cython_debug/
+db.sqlite3
+db.sqlite3-journal
+develop-eggs/
+dist/
+dmypy.json
+docs/_build/
+downloads/
+eggs/
+env.bak/
+ENV/
+env/
+envs/
+htmlcov/
+instance/
+ipython_config.py
+lib/
+lib64/
+local_settings.py
+MANIFEST
+nosetests.xml
+parts/
+pip-delete-this-directory.txt
+pip-log.txt
+profile_default/
+sdist/
+share/python-wheels/
+target/
+var/
+venv.bak/
+venv/
+venvs/
+virtualenv/
+virtualenvs/
+wheels/
+__pycache__/
+__pypackages__/
+
+# R
+#   https://github.com/github/gitignore/blob/main/R.gitignore
+*-Ex.R
+*.knit.md
+*.utf8.md
+*_cache/
+.httr-oauth
+.Rapp.history
+.RData
+.RDataTmp
+.Renviron
+.Rhistory
+.Rproj.user/
+.Ruserdata
+/*.Rcheck/
+/*.tar.gz
+/cache/
+docs/
+po/*~
+rsconnect/
+vignettes/*.html
+vignettes/*.pdf
+
+# SOPS
+#   https://github.com/getsops/sops#readme
+!*.sops.*
+
+# Syncthing
+#   https://syncthing.net
+.stfolder/
+.stignore
+.stversions/
+.syncthing.*
+~syncthing~*
+
+# Task
+#   https://taskfile.dev
+.task/
+
+# Terraform
+#   https://github.com/github/gitignore/blob/main/Terraform.gitignore
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+*_override.tf
+*_override.tf.json
+.terraform/
+.terraformrc
+crash.*.log
+crash.log
+override.tf
+override.tf.json
+terraform.rc
+
+# Vim
+#   https://github.com/github/gitignore/blob/main/Global/Vim.gitignore
+*~
+.netrwhist
+.viminfo
+Session.vim
+Sessionx.vim
+tags
+[._]*.sw[a-p]
+[._]*.s[a-v][a-z]
+[._]*.un~
+[._]ss[a-gi-z]
+[._]sw[a-p]
+[._]s[a-rt-v][a-z]
+!*.svg
+
+# Visual Studio Code
+#   https://github.com/github/gitignore/blob/main/Global/VisualStudioCode.gitignore
+*.vsix
+.history/
+.vscode-server/
+.vscode/*
+!.vscode/*.code-snippets
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+!.vscode/tasks.json
+
+# Windows
+#   https://github.com/github/gitignore/blob/main/Global/Windows.gitignore
+$RECYCLE.BIN/
+*.cab
+*.lnk
+*.msi
+*.msix
+*.msm
+*.msp
+*.stackdump
+ehthumbs.db
+ehthumbs_vista.db
+Thumbs.db
+Thumbs.db:encryptable
+[Dd]esktop.ini
+
+# Add project-specific patterns here.
+*.duckdb

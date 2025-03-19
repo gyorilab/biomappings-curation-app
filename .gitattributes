@@ -1,0 +1,90 @@
+# vim: set ft=gitattributes :
+
+
+# After modifying this file, please run the following from a clean working directory:
+#
+#   git -C "$(git rev-parse --show-toplevel)" add --renormalize -- .
+#
+# To learn more about gitattribute files, please see:
+#
+#   https://git-scm.com/book/en/v2/Customizing-Git-Git-Attributes
+#   https://git-scm.com/docs/gitattributes
+#
+# The following command pipeline prints a four-column table that may be helpful for debugging the
+# "text" and "eol" attributes. Among other things, it prints the file content identification used by
+# Git when the "text" attribute is "auto" (or not set and the "core.autocrlf" config option is not
+# false).
+#
+#   read -r -d '' GAWK_PROG << 'EOF' || true
+#   BEGIN {
+#     RS = "\0"
+#     OFS = "\t"
+#     ORS = "\n"
+#   }
+#   {
+#     match($0, /^([^ ]+) +([^ ]+) +([^\t]+)\t(.+)$/, a)
+#     a[3] = gensub(/ +$/, "", "g", a[3])
+#     a[4] = gensub(/[^[:print:]]+/, "�", "g", a[4])
+#     print a[1], a[2], a[3], a[4]
+#   }
+#   EOF
+#
+#   git ls-files -coz --eol --exclude-standard \
+#     | gawk -- "${GAWK_PROG}" \
+#     | sort -f -t $'\t' -k 1,1 -k 2,2 -k 3,3 -k 4,4 \
+#     | column -t -s $'\t'
+#
+# The four columns:
+#
+#   (1 & 2) eolinfo of the contents in the index or in the worktree for the path. Possible values:
+#
+#         i/       w/
+#         i/-text  w/-text
+#         i/crlf   w/crlf
+#         i/lf     w/lf
+#         i/mixed  w/mixed
+#         i/none   w/none
+#
+#   (3) eolattr that applies to the path. Possible values:
+#
+#         eolattr/
+#         eolattr/-text
+#         eolattr/text
+#         eolattr/text eol=crlf
+#         eolattr/text eol=lf
+#         eolattr/text=auto
+#         eolattr/text=auto eol=crlf
+#         eolattr/text=auto eol=lf
+#
+#   (4) path
+#
+# To learn more about Git's `ls-files` subcommand, please see:
+#
+#   https://git-scm.com/docs/git-ls-files
+
+# Normalize line endings on checkin (text).
+[attr]txt !bin !diff !eol !merge text
+
+# Don't display diffs (-diff).
+# Don't convert line endings of normalized files on checkout (-eol).
+# Take version from current branch as tentative merge result (-merge).
+# Don't normalize line endings on checkin (-text).
+[attr]bin !txt -diff -eol -merge -text
+
+# https://github.com/getsops/sops#showing-diffs-in-cleartext-in-git
+#
+#   git config --global -- diff.sopsDiff.textconv 'sops -d --'
+#
+# Temporarily disable with:
+#
+#   git diff/log/show --no-textconv […]
+#
+# Temporarily enable with:
+#
+#   git cat-file/grep --textconv […]
+
+*           txt
+*.sops.*    diff=sopsDiff
+.sops.yaml  !diff
+*.duckdb    bin
+*.parquet   bin
