@@ -14,7 +14,7 @@ printf -- '%s\n' \
 
 ## TLS cert
 
-Place a trusted TLS cert with SAN `app.gyori-mac.localdomain` and corresponding key at the locations
+Place a trusted TLS cert with SAN `*.gyori-mac.localdomain` and corresponding key at the locations
 matching those of the `tls` directive within `Caddyfile`.
 
 ## Launch
