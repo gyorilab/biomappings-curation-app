@@ -1,0 +1,110 @@
+# vim: set ft=yaml :
+
+
+# To learn more about pre-commit, please see:
+#
+#   https://pre-commit.com
+#   https://pre-commit.com/hooks.html
+
+default_stages: ['pre-commit']
+
+repos:
+
+  - repo: 'local'
+    hooks:
+
+      - id: 'pixi-install'
+        name: 'pixi-install'
+        entry: 'pixi install --no-progress -e lint'
+        language: 'system'
+        always_run: true
+        pass_filenames: false
+        require_serial: true
+
+      - id: 'check-case-conflict'
+        name: 'check-case-conflict'
+        entry: 'pixi run --no-progress -e lint -- check-case-conflict'
+        language: 'system'
+        types: ['text']
+
+      - id: 'check-json'
+        name: 'check-json'
+        entry: 'pixi run --no-progress -e lint -- check-json'
+        language: 'system'
+        types: ['json']
+
+      - id: 'check-symlinks'
+        name: 'check-symlinks'
+        entry: 'pixi run --no-progress -e lint -- check-symlinks'
+        language: 'system'
+        types: ['symlink']
+
+      - id: 'check-toml'
+        name: 'check-toml'
+        entry: 'pixi run --no-progress -e lint -- check-toml'
+        language: 'system'
+        types: ['toml']
+
+      - id: 'check-vcs-permalinks'
+        name: 'check-vcs-permalinks'
+        entry: 'pixi run --no-progress -e lint -- check-vcs-permalinks'
+        language: 'system'
+        types: ['text']
+
+      - id: 'check-yaml'
+        name: 'check-yaml'
+        entry: 'pixi run --no-progress -e lint -- check-yaml'
+        language: 'system'
+        types: ['yaml']
+
+      - id: 'debug-statements'
+        name: 'debug-statements'
+        entry: 'pixi run --no-progress -e lint -- debug-statement-hook'
+        language: 'system'
+        types: ['python']
+
+      - id: 'destroyed-symlinks'
+        name: 'destroyed-symlinks'
+        entry: 'pixi run --no-progress -e lint -- destroyed-symlinks'
+        language: 'system'
+        types: ['file']
+
+      - id: 'end-of-file-fixer'
+        name: 'end-of-file-fixer'
+        entry: 'pixi run --no-progress -e lint -- end-of-file-fixer'
+        language: 'system'
+        types: ['text']
+
+      - id: 'fix-byte-order-marker'
+        name: 'fix-byte-order-marker'
+        entry: 'pixi run --no-progress -e lint -- fix-byte-order-marker'
+        language: 'system'
+        types: ['text']
+
+      - id: 'trailing-whitespace-fixer'
+        name: 'trailing-whitespace-fixer'
+        entry: 'pixi run --no-progress -e lint -- trailing-whitespace-fixer --markdown-linebreak-ext=md'
+        language: 'system'
+        types: ['text']
+
+      - id: 'ruff'
+        name: 'ruff'
+        entry: 'pixi run --no-progress -e lint -- ruff check --fix --exit-non-zero-on-fix --force-exclude'
+        language: 'system'
+        types_or: ['python', 'pyi', 'jupyter']
+        require_serial: true
+
+      - id: 'ruff-format'
+        name: 'ruff-format'
+        entry: 'pixi run --no-progress -e lint -- ruff format --force-exclude'
+        language: 'system'
+        types_or: ['python', 'pyi']
+        require_serial: true
+
+      - id: 'mypy'
+        name: 'mypy'
+        entry: 'pixi run --no-progress -e lint -- mypy -- .'
+        language: 'system'
+        types_or: ['python', 'pyi', 'jupyter']
+        pass_filenames: false
+        require_serial: true

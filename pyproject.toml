@@ -1,0 +1,177 @@
+# vim: set ft=toml :
+
+
+[project]
+name = 'biomappings-curation-app'
+
+
+[tool.pixi.project]
+channels = ['conda-forge']
+platforms = [
+  'linux-64',
+  'linux-aarch64',
+  'osx-64',
+  'osx-arm64',
+]
+
+[tool.pixi.dependencies]
+python = { version = '>=3.13.2,<3.14' }
+
+[tool.pixi.pypi-dependencies]
+biomappings = { version = '>=0.3.7' }
+bioregistry = { version = '>=0.12.4' }
+bootstrap-flask = { version = '>=2.4.2' }
+flask = { version = '>=3.1.0' }
+flask-sqlalchemy = { version = '>=3.1.1' }
+flask-wtf = { version = '>=1.2.2' }
+psycopg = { version = '>=3.2.6', extras = ['binary', 'pool'] }
+pydantic = { version = '>=2.10.6' }
+sqlalchemy = { version = '>=2.0.39' }
+werkzeug = { version = '>=3.1.3' }
+wtforms = { version = '>=3.2.1' }
+
+[tool.pixi.tasks]
+caddy = { cmd = ['caddy', 'run', '--config', 'Caddyfile'] }
+oauth2-proxy = { cmd = ['oauth2-proxy', '--config', '<(op inject -i oauth2-proxy.toml)'] }
+flask = { cmd = ['flask', 'run'], env = { FLASK_RUN_PORT = '8080' } }
+
+[tool.pixi.environments]
+default = { solve-group = 'default' }
+lint = { features = ['lint'], solve-group = 'default' }
+
+[tool.pixi.feature.lint.pypi-dependencies]
+mypy = { version = '>=1.15.0', extras = ['faster-cache'] }
+pre-commit = { version = '>=4.2.0' }
+pre-commit-hooks = { version = '>=5.0.0' }
+ruff = { version = '>=0.11.2' }
+types-wtforms = { version = '>=3.2.1.20250304' }
+
+[tool.pixi.feature.lint.tasks]
+lint = { depends-on = ['pre-commit-run'] }
+pre-commit-run = { cmd = ['pre-commit', 'run', '--all-files'] }
+pre-commit-install = { depends-on = [
+  '_pre-commit-install-commit-msg',
+  '_pre-commit-install-post-checkout',
+  '_pre-commit-install-post-commit',
+  '_pre-commit-install-post-merge',
+  '_pre-commit-install-post-rewrite',
+  '_pre-commit-install-pre-commit',
+  '_pre-commit-install-pre-merge-commit',
+  '_pre-commit-install-pre-push',
+  '_pre-commit-install-pre-rebase',
+  '_pre-commit-install-prepare-commit-msg',
+] }
+_pre-commit-install-commit-msg = { cmd = [
+  'pre-commit', 'install', '-f', '-t', 'commit-msg',
+] }
+_pre-commit-install-post-checkout = { cmd = [
+  'pre-commit', 'install', '-f', '-t', 'post-checkout',
+] }
+_pre-commit-install-post-commit = { cmd = [
+  'pre-commit', 'install', '-f', '-t', 'post-commit',
+] }
+_pre-commit-install-post-merge = { cmd = [
+  'pre-commit', 'install', '-f', '-t', 'post-merge',
+] }
+_pre-commit-install-post-rewrite = { cmd = [
+  'pre-commit', 'install', '-f', '-t', 'post-rewrite',
+] }
+_pre-commit-install-pre-commit = { cmd = [
+  'pre-commit', 'install', '-f', '-t', 'pre-commit',
+] }
+_pre-commit-install-pre-merge-commit = { cmd = [
+  'pre-commit', 'install', '-f', '-t', 'pre-merge-commit',
+] }
+_pre-commit-install-pre-push = { cmd = [
+  'pre-commit', 'install', '-f', '-t', 'pre-push',
+] }
+_pre-commit-install-pre-rebase = { cmd = [
+  'pre-commit', 'install', '-f', '-t', 'pre-rebase',
+] }
+_pre-commit-install-prepare-commit-msg = { cmd = [
+  'pre-commit', 'install', '-f', '-t', 'prepare-commit-msg',
+] }
+
+
+[tool.mypy]
+exclude = [
+  '^submodules/',
+]
+local_partial_types = true
+plugins = [
+  'pydantic.mypy',
+]
+python_version = '3.13'
+strict_bytes = true
+
+[[tool.mypy.overrides]]
+ignore_missing_imports = true
+module = [
+  'biomappings.resources',
+  'biomappings.utils',
+  'flask_bootstrap',
+  'flask_wtf',
+]
+
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+
+
+[tool.ruff]
+extend-exclude = [
+  'submodules',
+]
+line-length = 100
+target-version = 'py313'
+
+[tool.ruff.lint]
+dummy-variable-rgx = '^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$'
+fixable = ['ALL']
+ignore = [
+  'ANN',      # mypy handles our type annotations
+  'C901',
+  'COM812',   # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
+  'COM819',   # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
+  'CPY',      # not publishing publicly
+  'D',        # we prefer our own docstring style
+  'E111',     # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
+  'E114',     # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
+  'E117',     # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
+  'ERA',      # do not remove commented-out code
+  'ISC001',   # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
+  'ISC002',   # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
+  'PLR0912',
+  'PLR0913',
+  'Q000',     # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
+  'Q001',     # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
+  'Q002',     # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
+  'Q003',     # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
+  'SLF001',
+  'TCH',      # TYPE_CHECKING blocks break autodocs
+  'TRY003',
+  'W191',     # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
+]
+select = ['ALL']
+unfixable = []
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+known-first-party = [
+  'biomappings',
+]
+known-local-folder = []
+known-third-party = [
+  'bioregistry',
+  'flask',
+  'flask_bootstrap',
+  'flask_sqlalchemy',
+  'flask_wtf',
+  'psycopg',
+  'pydantic',
+  'sqlalchemy',
+  'werkzeug',
+  'wtforms',
+]

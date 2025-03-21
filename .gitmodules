@@ -1,0 +1,4 @@
+[submodule "biomappings"]
+	branch = master
+	path = submodules/biomappings
+	url = https://github.com/biopragmatics/biomappings.git

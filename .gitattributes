@@ -86,5 +86,3 @@
 *           txt
 *.sops.*    diff=sopsDiff
 .sops.yaml  !diff
-*.duckdb    bin
-*.parquet   bin
