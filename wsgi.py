@@ -5,9 +5,7 @@ from collections import Counter, defaultdict
 from collections.abc import Iterable, Mapping
 from copy import deepcopy
 from pathlib import Path
-from typing import (
-    Any,
-)
+from typing import Any
 
 import bioregistry
 import flask
