@@ -19,7 +19,7 @@ python = { version = '>=3.13.2,<3.14' }
 
 [tool.pixi.pypi-dependencies]
 biomappings = { version = '>=0.3.7' }
-bioregistry = { version = '>=0.12.4' }
+bioregistry = { version = '>=0.12.7' }
 bootstrap-flask = { version = '>=2.4.2' }
 flask = { version = '>=3.1.0' }
 flask-sqlalchemy = { version = '>=3.1.1' }
