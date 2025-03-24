@@ -21,11 +21,7 @@ from werkzeug.local import LocalProxy
 from wtforms import StringField, SubmitField
 
 from biomappings.resources import (
-    append_false_mappings,
-    append_true_mappings,
-    append_unsure_mappings,
     load_predictions,
-    write_predictions,
 )
 from biomappings.utils import (
     check_valid_prefix_id,
@@ -246,11 +242,6 @@ class Controller:
         self.negatives_path = negatives_path
         self.unsure_path = unsure_path
 
-        self._marked: dict[int, str] = {}
-        self.total_curated = 0
-        self._added_mappings: list[dict[str, None | str | float]] = []
-        self.target_ids: set[tuple[str, str]] = set()
-
     def predictions_from_state(self, state: State) -> Iterable[tuple[int, Mapping[str, Any]]]:
         """Iterate over predictions from a state instance."""
         return self.predictions(
@@ -384,13 +375,18 @@ class Controller:
         same_text: bool | None = None,
         provenance: str | None = None,
     ):
+        user_id = State.from_flask_globals().user_id
         it: Iterable[tuple[int, Mapping[str, Any]]] = enumerate(self._predictions)
-        if self.target_ids:
+
+        target_ids = db.session.query(
+            db.select(TargetIds.prefix, TargetIds.identifier).filter(TargetIds.user_id == user_id)
+        ).all()
+        if target_ids:
             it = (
                 (line, p)
                 for (line, p) in it
-                if (p["source prefix"], p["source identifier"]) in self.target_ids
-                or (p["target prefix"], p["target identifier"]) in self.target_ids
+                if (p["source prefix"], p["source identifier"]) in target_ids
+                or (p["target prefix"], p["target identifier"]) in target_ids
             )
 
         if query is not None:
@@ -444,7 +440,10 @@ class Controller:
                 and prediction["relation"] == "skos:exactMatch"
             )
 
-        return ((line, prediction) for line, prediction in it if line not in self._marked)
+        marked_lines = db.session.query(
+            db.select(Marked.line).filter(Marked.user_id == user_id)
+        ).all()
+        return ((line, prediction) for line, prediction in it if line not in marked_lines)
 
     @staticmethod
     def _help_filter(query: str, it, elements: set[str]):
@@ -471,7 +470,9 @@ class Controller:
     @property
     def total_predictions(self) -> int:
         """Return the total number of yet unmarked predictions."""
-        return len(self._predictions) - len(self._marked)
+        user_id = State.from_flask_globals().user_id
+        marked_count = db.session.query(Marked).filter(Marked.user_id == user_id).count()
+        return len(self._predictions) - marked_count
 
     def mark(self, line: int, value: str) -> None:
         """Mark the given equivalency as correct.
@@ -480,11 +481,19 @@ class Controller:
         :param value: Value to mark the prediction with
         :raises ValueError: if an invalid value is used
         """
-        if line not in self._marked:
-            self.total_curated += 1
+        user_id = State.from_flask_globals().user_id
+        mark_ = db.session.get(Marked, (user_id, line))
+        if mark_ is None:
+            total_curated = db.session.get(TotalCurated, user_id) or TotalCurated(
+                user_id=user_id, total_curated=0
+            )
+            db.session.add(
+                TotalCurated(user_id=user_id, total_curated=total_curated.total_curated + 1)
+            )
         if value not in {"correct", "incorrect", "unsure", "broad", "narrow"}:
             raise ValueError
-        self._marked[line] = value
+        db.session.add(Marked(user_id=user_id, line=line, value=value))
+        db.session.commit()
 
     def add_mapping(
         self,
@@ -515,35 +524,45 @@ class Controller:
             )
             return
 
-        self._added_mappings.append(
-            {
-                "source prefix": source_prefix,
-                "source identifier": source_id,
-                "source name": source_name,
-                "relation": "skos:exactMatch",
-                "target prefix": target_prefix,
-                "target identifier": target_id,
-                "target name": target_name,
-                "source": user_id,
-                "type": "manual",
-                "prediction_type": None,
-                "prediction_source": None,
-                "prediction_confidence": None,
-            }
+        db.session.add(
+            AddedMappings(
+                user_id=user_id,
+                source_prefix=source_prefix,
+                source_identifier=source_id,
+                source_name=source_name,
+                relation="skos:exactMatch",
+                target_prefix=target_prefix,
+                target_identifier=target_id,
+                target_name=target_name,
+                type="manual",
+                prediction_type=None,
+                prediction_source=None,
+                prediction_confidence=None,
+            )
         )
-        self.total_curated += 1
+
+        total_curated = db.session.get(TotalCurated, user_id) or TotalCurated(
+            user_id=user_id, total_curated=0
+        )
+        db.session.add(TotalCurated(user_id=user_id, total_curated=total_curated.total_curated + 1))
+
+        db.session.commit()
 
     def persist(self):
         """Save the current markings to the source files."""
-        state = State.from_flask_globals()
+        user_id = State.from_flask_globals().user_id
         entries = defaultdict(list)
 
-        for line, value in sorted(self._marked.items(), reverse=True):
-            prediction = self._predictions.pop(line)
+        marked = dict(
+            db.session.query(db.select(Marked.line, Marked.value).filter(Marked.user_id == user_id))
+        )
+
+        for line, value in sorted(marked.items(), reverse=True):
+            prediction = self._predictions[line]
             prediction["prediction_type"] = prediction.pop("type")
             prediction["prediction_source"] = prediction.pop("source")
             prediction["prediction_confidence"] = prediction.pop("confidence")
-            prediction["source"] = state.user_id
+            prediction["source"] = user_id
             prediction["type"] = "semapv:ManualMappingCuration"
 
             # note these go backwards because of the way they are read
@@ -556,15 +575,36 @@ class Controller:
 
             entries[value].append(prediction)
 
-        append_true_mappings(entries["correct"], path=self.positives_path)
-        append_false_mappings(entries["incorrect"], path=self.negatives_path)
-        append_unsure_mappings(entries["unsure"], path=self.unsure_path)
-        write_predictions(self._predictions, path=self.predictions_path)
-        self._marked.clear()
+        # append_true_mappings(entries["correct"], path=self.positives_path)
+        # append_false_mappings(entries["incorrect"], path=self.negatives_path)
+        # append_unsure_mappings(entries["unsure"], path=self.unsure_path)
+        # write_predictions(self._predictions, path=self.predictions_path)
+        db.session.query(Marked).filter(Marked.user_id == user_id).delete()
 
         # Now add manually curated mappings
-        append_true_mappings(self._added_mappings, path=self.positives_path)
-        self._added_mappings = []
+        added_mappings = [  # noqa: F841
+            {
+                "source prefix": mapping.source_prefix,
+                "source identifier": mapping.source_identifier,
+                "source name": mapping.source_name,
+                "relation": mapping.relation,
+                "target prefix": mapping.target_prefix,
+                "target identifier": mapping.target_identifier,
+                "target name": mapping.target_name,
+                "source": mapping.user_id,
+                "type": mapping.type,
+                "prediction_type": mapping.prediction_type,
+                "prediction_source": mapping.prediction_source,
+                "prediction_confidence": mapping.prediction_confidence,
+            }
+            for mapping in db.session.scalars(
+                db.select(AddedMappings).filter(AddedMappings.user_id == user_id)
+            )
+        ]
+        # append_true_mappings(added_mappings, path=self.positives_path)
+        db.session.query(AddedMappings).filter(AddedMappings.user_id == user_id).delete()
+
+        db.session.commit()
 
 
 CONTROLLER: Controller = LocalProxy(lambda: current_app.config["controller"])  # type: ignore[assignment]
@@ -648,11 +688,12 @@ def add_mapping():
 @blueprint.route("/commit")
 def run_commit():
     """Make a commit then redirect to the home page."""
-    state = State.from_flask_globals()
+    user_id = State.from_flask_globals().user_id
+    total_curated = db.session.get_one(TotalCurated, user_id)
     commit_info = commit(
-        f"Curated {CONTROLLER.total_curated} mapping"
-        f"{'s' if CONTROLLER.total_curated > 1 else ''}"
-        f" ({state.user_id})",
+        f"Curated {total_curated.total_curated} mapping"
+        f"{'s' if total_curated.total_curated > 1 else ''}"
+        f" ({user_id})",
     )
     current_app.logger.warning("git commit res: %s", commit_info)
     if not_main():
@@ -662,7 +703,8 @@ def run_commit():
     else:
         flask.flash("did not push because on master branch")
         current_app.logger.warning("did not push because on master branch")
-    CONTROLLER.total_curated = 0
+    db.session.query(TotalCurated).filter(TotalCurated.user_id == user_id).delete()
+    db.session.commit()
     return _go_home()
 
 
