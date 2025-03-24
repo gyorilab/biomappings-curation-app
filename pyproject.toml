@@ -33,7 +33,7 @@ wtforms = { version = '>=3.2.1' }
 [tool.pixi.tasks]
 caddy = { cmd = ['caddy', 'run', '--config', 'Caddyfile'] }
 oauth2-proxy = { cmd = ['oauth2-proxy', '--config', '<(op inject -i oauth2-proxy.toml)'] }
-flask = { cmd = ['flask', 'run'], env = { FLASK_RUN_PORT = '8080' } }
+flask = { cmd = ['op', 'run', '--env-file', 'flask.env', '--', 'flask', 'run'] }
 
 [tool.pixi.environments]
 default = { solve-group = 'default' }

@@ -6,13 +6,17 @@ from collections.abc import Iterable, Mapping
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 import bioregistry
 import flask
 import flask_bootstrap
 from flask import current_app
+from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm
 from pydantic import BaseModel
+from sqlalchemy.orm import DeclarativeBase, Mapped, MappedAsDataclass
+from sqlalchemy.schema import MetaData, PrimaryKeyConstraint
 from werkzeug.local import LocalProxy
 from wtforms import StringField, SubmitField
 
@@ -41,6 +45,31 @@ RESOURCES_DIR = (
     .joinpath("biomappings")
     .joinpath("resources")
 )
+
+
+class SQLAlchemyBase(DeclarativeBase, MappedAsDataclass):
+    metadata = MetaData(
+        naming_convention={
+            "ck": "ck_%(table_name)s_%(constraint_name)s",
+            "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+            "ix": "ix_%(column_0_label)s",
+            "pk": "pk_%(table_name)s",
+            "uq": "uq_%(table_name)s_%(column_0_name)s",
+        }
+    )
+
+
+db = SQLAlchemy(model_class=SQLAlchemyBase)
+
+
+class Mark(db.Model):  # type: ignore[name-defined]
+    __tablename__ = "mark"
+
+    user_id: Mapped[str]
+    line: Mapped[int]
+    value: Mapped[str]
+
+    __table_args__ = (PrimaryKeyConstraint("user_id", "line"),)
 
 
 class State(BaseModel):
@@ -132,6 +161,23 @@ def get_app(
         controller=controller,
         url_for_state=url_for_state,
     )
+    app_.config["SQLALCHEMY_DATABASE_URI"] = "".join(
+        [
+            "postgresql+psycopg://",
+            quote(os.environ["SQLALCHEMY_DATABASE_USERNAME"], safe=""),
+            ":",
+            quote(os.environ["SQLALCHEMY_DATABASE_PASSWORD"], safe=""),
+            "@",
+            quote(os.environ["SQLALCHEMY_DATABASE_HOSTNAME"], safe=""),
+            ":",
+            os.environ["SQLALCHEMY_DATABASE_PORT"],
+            "/",
+            quote(os.environ["SQLALCHEMY_DATABASE_NAME"], safe=""),
+        ]
+    )
+    db.init_app(app_)
+    with app_.app_context():
+        db.create_all()
     return app_
 
 
