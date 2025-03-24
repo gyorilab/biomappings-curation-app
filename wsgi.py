@@ -62,14 +62,56 @@ class SQLAlchemyBase(DeclarativeBase, MappedAsDataclass):
 db = SQLAlchemy(model_class=SQLAlchemyBase)
 
 
-class Mark(db.Model):  # type: ignore[name-defined]
-    __tablename__ = "mark"
+class Marked(db.Model):  # type: ignore[name-defined]
+    __tablename__ = "marked"
 
     user_id: Mapped[str]
     line: Mapped[int]
     value: Mapped[str]
 
     __table_args__ = (PrimaryKeyConstraint("user_id", "line"),)
+
+
+class TotalCurated(db.Model):  # type: ignore[name-defined]
+    __tablename__ = "total_curated"
+
+    user_id: Mapped[str]
+    total_curated: Mapped[int]
+
+    __table_args__ = (PrimaryKeyConstraint("user_id"),)
+
+
+class AddedMappings(db.Model):  # type: ignore[name-defined]
+    __tablename__ = "added_mappings"
+
+    user_id: Mapped[str]
+    source_prefix: Mapped[str]
+    source_identifier: Mapped[str]
+    source_name: Mapped[str]
+    relation: Mapped[str]
+    target_prefix: Mapped[str]
+    target_identifier: Mapped[str]
+    target_name: Mapped[str]
+    type: Mapped[str]
+    prediction_type: Mapped[str | None]
+    prediction_source: Mapped[str | None]
+    prediction_confidence: Mapped[str | None]
+
+    __table_args__ = (
+        PrimaryKeyConstraint(
+            "user_id", "source_prefix", "source_identifier", "target_prefix", "target_identifier"
+        ),
+    )
+
+
+class TargetIds(db.Model):  # type: ignore[name-defined]
+    __tablename__ = "target_ids"
+
+    user_id: Mapped[str]
+    prefix: Mapped[str]
+    identifier: Mapped[str]
+
+    __table_args__ = (PrimaryKeyConstraint("user_id", "prefix", "identifier"),)
 
 
 class State(BaseModel):
@@ -132,7 +174,6 @@ def url_for_state(endpoint, state: State, **kwargs) -> str:
 
 
 def get_app(
-    target_curies: Iterable[tuple[str, str]] | None = None,
     predictions_path: Path | None = None,
     positives_path: Path | None = None,
     negatives_path: Path | None = None,
@@ -145,7 +186,6 @@ def get_app(
     app_.config["SHOW_RELATIONS"] = True
     app_.config["SHOW_LINES"] = False
     controller = Controller(
-        target_curies=target_curies,
         predictions_path=predictions_path,
         positives_path=positives_path,
         negatives_path=negatives_path,
@@ -187,7 +227,6 @@ class Controller:
     def __init__(
         self,
         *,
-        target_curies: Iterable[tuple[str, str]] | None = None,
         predictions_path: Path | None = None,
         positives_path: Path | None = None,
         negatives_path: Path | None = None,
@@ -195,9 +234,6 @@ class Controller:
     ):
         """Instantiate the web controller.
 
-        :param target_curies: Pairs of prefix, local unique identifiers that are the target
-            of curation. If this is given, pre-filters will be made before on predictions
-            to only show ones where either the source or target appears in this set
         :param predictions_path: A custom predictions file to curate from
         :param positives_path: A custom positives file to curate to
         :param negatives_path: A custom negatives file to curate to
@@ -213,7 +249,7 @@ class Controller:
         self._marked: dict[int, str] = {}
         self.total_curated = 0
         self._added_mappings: list[dict[str, None | str | float]] = []
-        self.target_ids = set(target_curies or [])
+        self.target_ids: set[tuple[str, str]] = set()
 
     def predictions_from_state(self, state: State) -> Iterable[tuple[int, Mapping[str, Any]]]:
         """Iterate over predictions from a state instance."""
