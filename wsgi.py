@@ -380,9 +380,11 @@ class Controller:
         user_id = State.from_flask_globals().user_id
         it: Iterable[tuple[int, MappingT[str, Any]]] = enumerate(self._predictions)
 
-        target_ids = db.session.query(
-            db.select(TargetId.prefix, TargetId.identifier).filter(TargetId.user_id == user_id)
-        ).all()
+        target_ids = (
+            db.session.query(TargetId.prefix, TargetId.identifier)
+            .filter(TargetId.user_id == user_id)
+            .all()
+        )
         if target_ids:
             it = (
                 (line, p)
@@ -442,7 +444,7 @@ class Controller:
                 and prediction["relation"] == "skos:exactMatch"
             )
 
-        marked_lines = db.session.query(db.select(Mark.line).filter(Mark.user_id == user_id)).all()
+        marked_lines = db.session.query(Mark.line).filter(Mark.user_id == user_id).all()
         return ((line, prediction) for line, prediction in it if line not in marked_lines)
 
     @staticmethod
@@ -551,7 +553,10 @@ class Controller:
         user_id = State.from_flask_globals().user_id
 
         marks = dict(
-            db.session.query(db.select(Mark.line, Mark.value).filter(Mark.user_id == user_id))
+            db.session.query(Mark.line, Mark.value)
+            .filter(Mark.user_id == user_id)
+            .outerjoin(Mapping, (Mark.user_id == Mapping.source) & (Mark.line == Mapping.line))
+            .filter(Mapping.line.is_(None))
         )
         mappings = []
 
