@@ -444,7 +444,7 @@ class Controller:
                 and prediction["relation"] == "skos:exactMatch"
             )
 
-        marked_lines = db.session.query(Mark.line).filter(Mark.user_id == user_id).all()
+        marked_lines = {_[0] for _ in db.session.query(Mark.line).filter(Mark.user_id == user_id)}
         return ((line, prediction) for line, prediction in it if line not in marked_lines)
 
     @staticmethod
