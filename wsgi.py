@@ -616,12 +616,16 @@ def home():
     form = MappingForm()
     predictions = CONTROLLER.predictions_from_state(state)
     remaining_rows = CONTROLLER.count_predictions_from_state(state)
+    total_curated = (
+        db.session.get(UserMeta, state.user_id) or UserMeta(user_id=state.user_id)
+    ).total_curated
     return flask.render_template(
         "home.html",
         predictions=predictions,
         form=form,
         state=state,
         remaining_rows=remaining_rows,
+        total_curated=total_curated,
     )
 
 
