@@ -562,8 +562,14 @@ class Controller:
             )
 
         db.session.add_all(mappings)
-        # db.session.query(Mark).filter(Mark.user_id == user_id).delete()
+        db.session.commit()
 
+    def clear_user_state(self, user_id: str):
+        """Clear all user-specific state."""
+        db.session.query(Mark).filter(Mark.user_id == user_id).delete()
+        db.session.query(UserMeta).filter(UserMeta.user_id == user_id).delete()
+        db.session.query(Mapping).filter(Mapping.source == user_id).delete()
+        # db.session.query(TargetId).filter(TargetId.user_id == user_id).delete()
         db.session.commit()
 
 
@@ -646,6 +652,14 @@ def add_mapping():
         CONTROLLER.persist()
     else:
         flask.flash("missing form data", category="warning")
+    return _go_home()
+
+
+@blueprint.route("/clear_user_state")
+def clear_user_state():
+    """Clear all user-specific state, then redirect to the home page."""
+    user_id = State.from_flask_globals().user_id
+    CONTROLLER.clear_user_state(user_id)
     return _go_home()
 
 

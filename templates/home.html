@@ -29,9 +29,9 @@
                 </h5>
                 <div class="card-body">
                     {% if total_curated %}
-                        <a href="{{ url_for_state('.run_commit', state) }}">
-                            <button class="btn btn-sm btn-outline-dark">Commit ({{ total_curated }}) and Push
-                                <span class="glyphicon glyphicon-arrow-up" aria-hidden="true"></span>
+                        <a href="{{ url_for_state('.clear_user_state', state) }}">
+                            <button class="btn btn-sm btn-outline-dark">Reset changes ({{ total_curated }})
+                                <span class="glyphicon glyphicon-floppy-remove" aria-hidden="true"></span>
                             </button>
                         </a>
                     {% endif %}
