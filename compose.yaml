@@ -18,7 +18,6 @@ services:
     image: 'docker.io/library/caddy:2.9.1'
     networks:
       - 'external'
-      - 'internal'
     ports:
       - mode: 'host'
         protocol: 'tcp'
@@ -81,6 +80,7 @@ services:
         format: 'raw'
       - path: './env/app.env'
     networks:
+      - 'external'
       - 'internal'
     restart: 'always'
     volumes:
