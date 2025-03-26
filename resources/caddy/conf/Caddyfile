@@ -4,22 +4,20 @@
 # https://caddyserver.com/docs/caddyfile/options
 {
   debug
-  # http_port 4080
-  # https_port 4443
   auto_https disable_certs
-  # servers {
-  #   trusted_proxies static private_ranges
-  #   trusted_proxies_strict
-  # }
+  servers {
+    trusted_proxies static private_ranges
+    trusted_proxies_strict
+  }
 }
 
 *.gyori-mac.localdomain {
-  tls "/Users/m.anselmi/.pki/private/x509/gyori-mac/cert.pem" "/Users/m.anselmi/.pki/private/x509/gyori-mac/key.pem"
+  tls "/tls/cert.pem" "/tls/key.pem"
 }
 
 app.gyori-mac.localdomain {
   handle /oauth2/* {
-    reverse_proxy http://localhost:4180 {
+    reverse_proxy http://oauth2-proxy:4180 {
       # oauth2-proxy requires the X-Real-IP and X-Forwarded-{Proto,Host,Uri} headers. The
       # reverse_proxy directive automatically sets X-Forwarded-{For,Proto,Host} headers.
       #
@@ -30,7 +28,7 @@ app.gyori-mac.localdomain {
   }
 
   handle {
-    forward_auth http://localhost:4180 {
+    forward_auth http://oauth2-proxy:4180 {
       uri /oauth2/auth
 
       # oauth2-proxy requires the X-Real-IP and X-Forwarded-{Proto,Host,Uri} headers. The
@@ -52,6 +50,6 @@ app.gyori-mac.localdomain {
     }
 
     # If oauth2-proxy returns a 2xx status, the request is then proxied to the upstream.
-    reverse_proxy http://localhost:8080
+    reverse_proxy http://app:5000
   }
 }

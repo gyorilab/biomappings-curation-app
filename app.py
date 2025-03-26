@@ -6,7 +6,6 @@ from collections.abc import Iterable, Mapping as MappingT
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
-from urllib.parse import quote
 
 import bioregistry
 import flask
@@ -28,16 +27,6 @@ from biomappings.utils import (
     get_curie,
     not_main,
     push,
-)
-
-RESOURCES_DIR = (
-    Path(__file__)
-    .resolve()
-    .with_name("submodules")
-    .joinpath("biomappings")
-    .joinpath("src")
-    .joinpath("biomappings")
-    .joinpath("resources")
 )
 
 
@@ -184,20 +173,7 @@ def get_app(predictions_path: Path | None = None) -> flask.Flask:
     flask_bootstrap.Bootstrap4(app_)
     app_.register_blueprint(blueprint)
     app_.jinja_env.globals.update(controller=controller, url_for_state=url_for_state)
-    app_.config["SQLALCHEMY_DATABASE_URI"] = "".join(
-        [
-            "postgresql+psycopg://",
-            quote(os.environ["SQLALCHEMY_DATABASE_USERNAME"], safe=""),
-            ":",
-            quote(os.environ["SQLALCHEMY_DATABASE_PASSWORD"], safe=""),
-            "@",
-            quote(os.environ["SQLALCHEMY_DATABASE_HOSTNAME"], safe=""),
-            ":",
-            os.environ["SQLALCHEMY_DATABASE_PORT"],
-            "/",
-            quote(os.environ["SQLALCHEMY_DATABASE_NAME"], safe=""),
-        ]
-    )
+    app_.config["SQLALCHEMY_DATABASE_URI"] = os.environ["SQLALCHEMY_DATABASE_URI"]
     db.init_app(app_)
     with app_.app_context():
         db.create_all()
@@ -719,7 +695,7 @@ def _go_home():
     return flask.redirect(url_for_state(".home", state))
 
 
-app = get_app(predictions_path=RESOURCES_DIR.joinpath("predictions.tsv"))
+app = get_app(predictions_path=Path("predictions.tsv"))
 
 if __name__ == "__main__":
     app.run()

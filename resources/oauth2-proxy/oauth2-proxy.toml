@@ -2,8 +2,6 @@
 
 
 banner = 'Welcome to the <a href="https://biopragmatics.github.io/biomappings/">Biomappings</a> curation interface.'
-client_id = '''{{ op://yksesvynnyj573ps3dagfglceu/3p7ohcuwamjhnjvqhtz47tumwq/xhznjesdn5l4c2hveblqwf2um4/client_id }}'''
-client_secret = '''{{ op://yksesvynnyj573ps3dagfglceu/3p7ohcuwamjhnjvqhtz47tumwq/xhznjesdn5l4c2hveblqwf2um4/client_secret }}'''
 code_challenge_method = 'S256'
 cookie_csrf_per_request = true
 cookie_csrf_expire = '5m'
@@ -13,14 +11,12 @@ cookie_httponly = true  # https://developer.mozilla.org/en-US/docs/Web/Security/
 cookie_name = '__Secure-oauth2_proxy'  # https://developer.mozilla.org/en-US/docs/Web/Security/Practical_implementation_guides/Cookies#name
 cookie_refresh = '15m'  # https://infosec.mozilla.org/guidelines/iam/openid_connect.html#session-handling
 cookie_samesite = 'lax'  # https://github.com/oauth2-proxy/oauth2-proxy/issues/1663
-cookie_secret = '''{{ op://yksesvynnyj573ps3dagfglceu/ps6riusgizugkzhoyuvzshsoiy/password }}'''
 cookie_secure = true  # https://developer.mozilla.org/en-US/docs/Web/Security/Practical_implementation_guides/Cookies#secure
 custom_sign_in_logo = 'https://gyorilab.github.io/images/gyorilab_logo.png'
 email_domains = ['*']
 footer = 'Developed by the <a href="https://gyorilab.github.io">Gyori Lab</a> at Northeastern University.'
 force_https = false
-http_address = 'http://localhost:4180'
-# https_address = 'https://localhost:4181'
+http_address = 'http://:4180'
 oidc_email_claim = 'sub'  # https://github.com/oauth2-proxy/oauth2-proxy/issues/1612#issuecomment-1099217761
 oidc_issuer_url = 'https://orcid.org'
 provider = 'oidc'
@@ -30,7 +26,5 @@ reverse_proxy = true
 scope = 'openid'  # https://orcid.org/.well-known/openid-configuration
 set_xauthrequest = true
 skip_provider_button = false
-# tls_cert_file = '/Users/m.anselmi/.pki/private/x509/gyori-mac/cert.pem'
-# tls_key_file = '/Users/m.anselmi/.pki/private/x509/gyori-mac/key.pem'
 upstreams = ['https://app.gyori-mac.localdomain']
 whitelist_domains = ['app.gyori-mac.localdomain', 'orcid.org']

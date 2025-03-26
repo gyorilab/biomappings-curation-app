@@ -12,17 +12,22 @@ printf -- '%s\n' \
   | sudo -- tee -a -- /etc/hosts > /dev/null
 ```
 
+## Inject secrets from credential store
+
+``` shell
+find -- ./env -type f -name '*.env.tpl' \
+  -exec zsh -efuc 'for ARG; do op inject -f -i "${ARG}" -o "${ARG:r}"; done' zsh {} +
+```
+
 ## TLS cert
 
-Place a trusted TLS cert with SAN `*.gyori-mac.localdomain` and corresponding key at the locations
-matching those of the `tls` directive within `Caddyfile`.
+Place a trusted TLS cert with SAN `*.gyori-mac.localdomain` and corresponding key at
+`~/.pki/private/x509/gyori-mac/{cert.pem,key.pem}`, respectively.
 
 ## Launch
 
 ``` shell
-pixi run -- caddy
-pixi run -- oauth2-proxy
-pixi run -- flask
+docker-compose up
 ```
 
 [Biomappings curation app](https://app.gyori-mac.localdomain)

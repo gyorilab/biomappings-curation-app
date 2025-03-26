@@ -1,0 +1,103 @@
+# vim: set ft=yaml :
+
+
+networks:
+
+  external:
+  internal:
+    internal: true
+
+services:
+
+  caddy:
+    depends_on:
+      - 'app'
+      - 'oauth2-proxy'
+    env_file:
+      - path: './env/common.env'
+    image: 'docker.io/library/caddy:2.9.1'
+    networks:
+      - 'external'
+      - 'internal'
+    ports:
+      - mode: 'host'
+        protocol: 'tcp'
+        published: 443
+        target: 443
+    restart: 'always'
+    volumes:
+      - source: '${HOME}/.pki/private/x509/gyori-mac'
+        target: '/tls'
+        type: 'bind'
+        read_only: true
+      - source: './resources/caddy/conf'
+        target: '/etc/caddy'
+        type: 'bind'
+        read_only: true
+      - source: 'caddy-data'
+        target: '/data'
+        type: 'volume'
+
+  oauth2-proxy:
+    command: ['--config', '/etc/oauth2-proxy/oauth2-proxy.toml']
+    env_file:
+      - path: './env/common.env'
+      - path: './env/oauth2-proxy.env'
+        format: 'raw'
+    image: 'quay.io/oauth2-proxy/oauth2-proxy:v7.8.2'
+    networks:
+      - 'external'
+    restart: 'always'
+    volumes:
+      - source: './resources/oauth2-proxy/oauth2-proxy.toml'
+        target: '/etc/oauth2-proxy/oauth2-proxy.toml'
+        type: 'bind'
+        read_only: true
+
+  postgres:
+    env_file:
+      - path: './env/common.env'
+      - path: './env/postgres.env'
+        format: 'raw'
+    image: 'docker.io/library/postgres:17.4'
+    networks:
+      - 'internal'
+    restart: 'always'
+    volumes:
+      - source: 'postgres-data'
+        target: '/var/lib/postgresql/data'
+        type: 'volume'
+
+  app:
+    build:
+      context: '.'
+      dockerfile: './resources/app/app.dockerfile'
+    command: ["flask", "run", "--host=0.0.0.0"]
+    depends_on:
+      - 'postgres'
+    env_file:
+      - path: './env/common.env'
+      - path: './env/postgres.env'
+        format: 'raw'
+      - path: './env/app.env'
+    networks:
+      - 'internal'
+    restart: 'always'
+    volumes:
+      - source: './app.py'
+        target: '/app/app.py'
+        type: 'bind'
+        read_only: true
+      - source: './resources/app/templates'
+        target: '/app/templates'
+        type: 'bind'
+        read_only: true
+      - source: './submodules/biomappings/src/biomappings/resources/predictions.tsv'
+        target: '/app/predictions.tsv'
+        type: 'bind'
+        read_only: true
+
+volumes:
+
+  caddy-data:
+  postgres-data:
