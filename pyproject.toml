@@ -169,7 +169,6 @@ known-third-party = [
   'flask_bootstrap',
   'flask_sqlalchemy',
   'flask_wtf',
-  'psycopg',
   'pydantic',
   'sqlalchemy',
   'werkzeug',

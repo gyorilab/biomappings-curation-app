@@ -20,9 +20,7 @@ from sqlalchemy.schema import MetaData, PrimaryKeyConstraint
 from werkzeug.local import LocalProxy
 from wtforms import StringField, SubmitField
 
-from biomappings.resources import (
-    load_predictions,
-)
+from biomappings.resources import load_predictions
 from biomappings.utils import (
     check_valid_prefix_id,
     commit,
@@ -102,14 +100,14 @@ class Mapping(db.Model):  # type: ignore[name-defined]
     )
 
 
-class TargetId(db.Model):  # type: ignore[name-defined]
-    __tablename__ = "target_id"
-
-    user_id: Mapped[str]
-    prefix: Mapped[str]
-    identifier: Mapped[str]
-
-    __table_args__ = (PrimaryKeyConstraint("user_id", "prefix", "identifier"),)
+# class TargetId(db.Model):  # type: ignore[name-defined]
+#     __tablename__ = "target_id"
+#
+#     user_id: Mapped[str]
+#     prefix: Mapped[str]
+#     identifier: Mapped[str]
+#
+#     __table_args__ = (PrimaryKeyConstraint("user_id", "prefix", "identifier"),)
 
 
 class State(BaseModel):
@@ -171,34 +169,21 @@ def url_for_state(endpoint, state: State, **kwargs) -> str:
     return flask.url_for(endpoint, **vv)
 
 
-def get_app(
-    predictions_path: Path | None = None,
-    positives_path: Path | None = None,
-    negatives_path: Path | None = None,
-    unsure_path: Path | None = None,
-) -> flask.Flask:
+def get_app(predictions_path: Path | None = None) -> flask.Flask:
     """Get a curation flask app."""
     app_ = flask.Flask(__name__)
     app_.config["WTF_CSRF_ENABLED"] = False
     app_.config["SECRET_KEY"] = os.urandom(8)
     app_.config["SHOW_RELATIONS"] = True
     app_.config["SHOW_LINES"] = False
-    controller = Controller(
-        predictions_path=predictions_path,
-        positives_path=positives_path,
-        negatives_path=negatives_path,
-        unsure_path=unsure_path,
-    )
+    controller = Controller(predictions_path=predictions_path)
     if not controller._predictions and predictions_path is not None:
         msg = f"There are no predictions to curate in {predictions_path}"
         raise RuntimeError(msg)
     app_.config["controller"] = controller
     flask_bootstrap.Bootstrap4(app_)
     app_.register_blueprint(blueprint)
-    app_.jinja_env.globals.update(
-        controller=controller,
-        url_for_state=url_for_state,
-    )
+    app_.jinja_env.globals.update(controller=controller, url_for_state=url_for_state)
     app_.config["SQLALCHEMY_DATABASE_URI"] = "".join(
         [
             "postgresql+psycopg://",
@@ -222,27 +207,13 @@ def get_app(
 class Controller:
     """A module for interacting with the predictions and mappings."""
 
-    def __init__(
-        self,
-        *,
-        predictions_path: Path | None = None,
-        positives_path: Path | None = None,
-        negatives_path: Path | None = None,
-        unsure_path: Path | None = None,
-    ):
+    def __init__(self, *, predictions_path: Path | None = None):
         """Instantiate the web controller.
 
         :param predictions_path: A custom predictions file to curate from
-        :param positives_path: A custom positives file to curate to
-        :param negatives_path: A custom negatives file to curate to
-        :param unsure_path: A custom unsure file to curate to
         """
         self.predictions_path = predictions_path
         self._predictions = load_predictions(path=self.predictions_path)
-
-        self.positives_path = positives_path
-        self.negatives_path = negatives_path
-        self.unsure_path = unsure_path
 
     def predictions_from_state(self, state: State) -> Iterable[tuple[int, MappingT[str, Any]]]:
         """Iterate over predictions from a state instance."""
@@ -380,18 +351,18 @@ class Controller:
         user_id = State.from_flask_globals().user_id
         it: Iterable[tuple[int, MappingT[str, Any]]] = enumerate(self._predictions)
 
-        target_ids = (
-            db.session.query(TargetId.prefix, TargetId.identifier)
-            .filter(TargetId.user_id == user_id)
-            .all()
-        )
-        if target_ids:
-            it = (
-                (line, p)
-                for (line, p) in it
-                if (p["source prefix"], p["source identifier"]) in target_ids
-                or (p["target prefix"], p["target identifier"]) in target_ids
-            )
+        # target_ids = (
+        #     db.session.query(TargetId.prefix, TargetId.identifier)
+        #     .filter(TargetId.user_id == user_id)
+        #     .all()
+        # )
+        # if target_ids:
+        #     it = (
+        #         (line, p)
+        #         for (line, p) in it
+        #         if (p["source prefix"], p["source identifier"]) in target_ids
+        #         or (p["target prefix"], p["target identifier"]) in target_ids
+        #     )
 
         if query is not None:
             it = self._help_filter(
@@ -734,12 +705,7 @@ def _go_home():
     return flask.redirect(url_for_state(".home", state))
 
 
-app = get_app(
-    predictions_path=RESOURCES_DIR.joinpath("predictions.tsv"),
-    positives_path=RESOURCES_DIR.joinpath("mappings.tsv"),
-    negatives_path=RESOURCES_DIR.joinpath("incorrect.tsv"),
-    unsure_path=RESOURCES_DIR.joinpath("unsure.tsv"),
-)
+app = get_app(predictions_path=RESOURCES_DIR.joinpath("predictions.tsv"))
 
 if __name__ == "__main__":
     app.run()
