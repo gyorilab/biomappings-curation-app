@@ -93,24 +93,51 @@ go-sops = { version = '>=3.9.4' }
 
 [tool.pixi.feature.secrets.tasks]
 decrypt = { depends-on = [
+  '_decrypt-env-app',
   '_decrypt-env-oauth2-proxy',
 ] }
 encrypt = { depends-on = [
+  '_encrypt-env-app',
   '_encrypt-env-oauth2-proxy',
 ] }
 refresh-keys = { depends-on = [
+  '_refresh-keys-env-app',
   '_refresh-keys-env-oauth2-proxy',
+] }
+_refresh-keys-env-app = { depends-on = [
+  '_updatekeys-env-app',
+  '_rotate-env-app',
 ] }
 _refresh-keys-env-oauth2-proxy = { depends-on = [
   '_updatekeys-env-oauth2-proxy',
   '_rotate-env-oauth2-proxy',
 ] }
 
+[tool.pixi.feature.secrets.tasks._decrypt-env-app]
+cwd = 'env'
+cmd = ['sops', 'decrypt', '--output=app.secret', '--', 'app.secret.sops.env']
+inputs = ['env/app.secret.sops.env']
+outputs = ['env/app.secret']
+
 [tool.pixi.feature.secrets.tasks._decrypt-env-oauth2-proxy]
 cwd = 'env'
 cmd = ['sops', 'decrypt', '--output=oauth2-proxy.secret', '--', 'oauth2-proxy.secret.sops.env']
 inputs = ['env/oauth2-proxy.secret.sops.env']
 outputs = ['env/oauth2-proxy.secret']
+
+[tool.pixi.feature.secrets.tasks._encrypt-env-app]
+cwd = 'env'
+cmd = [
+  'sops',
+  'encrypt',
+  '--input-type=dotenv',
+  '--output-type=dotenv',
+  '--output=app.secret.sops.env',
+  '--',
+  'app.secret',
+]
+inputs = ['env/app.secret']
+outputs = ['env/app.secret.sops.env']
 
 [tool.pixi.feature.secrets.tasks._encrypt-env-oauth2-proxy]
 cwd = 'env'
@@ -125,6 +152,14 @@ cmd = [
 ]
 inputs = ['env/oauth2-proxy.secret']
 outputs = ['env/oauth2-proxy.secret.sops.env']
+
+[tool.pixi.feature.secrets.tasks._updatekeys-env-app]
+cwd = 'env'
+cmd = ['sops', 'updatekeys', '--yes', '--', 'app.secret.sops.env']
+
+[tool.pixi.feature.secrets.tasks._rotate-env-app]
+cwd = 'env'
+cmd = ['sops', 'rotate', '--in-place', '--', 'app.secret.sops.env']
 
 [tool.pixi.feature.secrets.tasks._updatekeys-env-oauth2-proxy]
 cwd = 'env'
