@@ -14,7 +14,16 @@ services:
       - 'app'
       - 'oauth2-proxy'
     env_file:
+      - path: './env/common.secret'
+        format: 'raw'
+        required: false
       - path: './env/common.env'
+        required: false
+      - path: './env/caddy.secret'
+        format: 'raw'
+        required: false
+      - path: './env/caddy.env'
+        required: false
     image: 'docker.io/library/caddy:2.9.1'
     networks:
       - 'external'
@@ -40,9 +49,16 @@ services:
   oauth2-proxy:
     command: ['--config', '/etc/oauth2-proxy/oauth2-proxy.toml']
     env_file:
-      - path: './env/common.env'
-      - path: './env/oauth2-proxy.env'
+      - path: './env/common.secret'
         format: 'raw'
+        required: false
+      - path: './env/common.env'
+        required: false
+      - path: './env/oauth2-proxy.secret'
+        format: 'raw'
+        required: false
+      - path: './env/oauth2-proxy.env'
+        required: false
     image: 'quay.io/oauth2-proxy/oauth2-proxy:v7.8.2'
     networks:
       - 'external'
@@ -55,9 +71,16 @@ services:
 
   postgres:
     env_file:
-      - path: './env/common.env'
-      - path: './env/postgres.env'
+      - path: './env/common.secret'
         format: 'raw'
+        required: false
+      - path: './env/common.env'
+        required: false
+      - path: './env/postgres.secret'
+        format: 'raw'
+        required: false
+      - path: './env/postgres.env'
+        required: false
     image: 'docker.io/library/postgres:17.4'
     networks:
       - 'internal'
@@ -75,10 +98,21 @@ services:
     depends_on:
       - 'postgres'
     env_file:
-      - path: './env/common.env'
-      - path: './env/postgres.env'
+      - path: './env/common.secret'
         format: 'raw'
+        required: false
+      - path: './env/common.env'
+        required: false
+      - path: './env/postgres.secret'
+        format: 'raw'
+        required: false
+      - path: './env/postgres.env'
+        required: false
+      - path: './env/app.secret'
+        format: 'raw'
+        required: false
       - path: './env/app.env'
+        required: false
     networks:
       - 'external'
       - 'internal'

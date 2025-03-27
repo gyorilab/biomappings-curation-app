@@ -15,7 +15,7 @@ printf -- '%s\n' \
 ## Inject secrets from credential store
 
 ``` shell
-find -- ./env -type f -name '*.env.tpl' \
+find -- ./env -type f -name '*.secret.tpl' \
   -exec zsh -efuc 'for ARG; do op inject -f -i "${ARG}" -o "${ARG:r}"; done' zsh {} +
 ```
 

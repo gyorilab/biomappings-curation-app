@@ -415,8 +415,5 @@ Thumbs.db:encryptable
 [Dd]esktop.ini
 
 # Add project-specific patterns here.
-*.env
 !/env/
-!/env/app.env
-!/env/common.env
-!/env/postgres.env
+*.secret
