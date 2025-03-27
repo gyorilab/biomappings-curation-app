@@ -119,12 +119,6 @@ cmd = ['sops', 'decrypt', '--output=app.secret', '--', 'app.secret.sops.env']
 inputs = ['env/app.secret.sops.env']
 outputs = ['env/app.secret']
 
-[tool.pixi.feature.secrets.tasks._decrypt-env-oauth2-proxy]
-cwd = 'env'
-cmd = ['sops', 'decrypt', '--output=oauth2-proxy.secret', '--', 'oauth2-proxy.secret.sops.env']
-inputs = ['env/oauth2-proxy.secret.sops.env']
-outputs = ['env/oauth2-proxy.secret']
-
 [tool.pixi.feature.secrets.tasks._encrypt-env-app]
 cwd = 'env'
 cmd = [
@@ -138,6 +132,12 @@ cmd = [
 ]
 inputs = ['env/app.secret']
 outputs = ['env/app.secret.sops.env']
+
+[tool.pixi.feature.secrets.tasks._decrypt-env-oauth2-proxy]
+cwd = 'env'
+cmd = ['sops', 'decrypt', '--output=oauth2-proxy.secret', '--', 'oauth2-proxy.secret.sops.env']
+inputs = ['env/oauth2-proxy.secret.sops.env']
+outputs = ['env/oauth2-proxy.secret']
 
 [tool.pixi.feature.secrets.tasks._encrypt-env-oauth2-proxy]
 cwd = 'env'
