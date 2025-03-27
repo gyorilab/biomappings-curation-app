@@ -7,11 +7,7 @@
 #
 # To update identity encryption keys and rotate data encryption keys, please run:
 #
-#   task update-keys
-#
-# Files may be truncated if decryption fails, so be prepared to restore files if necessary:
-#
-#   https://github.com/getsops/sops/issues/484
+#   pixi run -- refresh-keys
 
 
 _defaults:
