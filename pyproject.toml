@@ -129,8 +129,16 @@ cmd = [
   '--',
   'app.secret',
 ]
-inputs = ['env/app.secret']
+inputs = ['.sops.yaml', 'env/app.secret']
 outputs = ['env/app.secret.sops.env']
+
+[tool.pixi.feature.secrets.tasks._updatekeys-env-app]
+cwd = 'env'
+cmd = ['sops', 'updatekeys', '--yes', '--', 'app.secret.sops.env']
+
+[tool.pixi.feature.secrets.tasks._rotate-env-app]
+cwd = 'env'
+cmd = ['sops', 'rotate', '--in-place', '--', 'app.secret.sops.env']
 
 [tool.pixi.feature.secrets.tasks._decrypt-env-oauth2-proxy]
 cwd = 'env'
@@ -149,16 +157,8 @@ cmd = [
   '--',
   'oauth2-proxy.secret',
 ]
-inputs = ['env/oauth2-proxy.secret']
+inputs = ['.sops.yaml', 'env/oauth2-proxy.secret']
 outputs = ['env/oauth2-proxy.secret.sops.env']
-
-[tool.pixi.feature.secrets.tasks._updatekeys-env-app]
-cwd = 'env'
-cmd = ['sops', 'updatekeys', '--yes', '--', 'app.secret.sops.env']
-
-[tool.pixi.feature.secrets.tasks._rotate-env-app]
-cwd = 'env'
-cmd = ['sops', 'rotate', '--in-place', '--', 'app.secret.sops.env']
 
 [tool.pixi.feature.secrets.tasks._updatekeys-env-oauth2-proxy]
 cwd = 'env'
