@@ -112,18 +112,24 @@ _refresh-keys-env-oauth2-proxy = { depends-on = [
   '_updatekeys-env-oauth2-proxy',
   '_rotate-env-oauth2-proxy',
 ] }
+_updatekeys-env-app = { cwd = 'env', cmd = [
+  'sops', 'updatekeys', '--yes', '--', 'app.secret.sops.env',
+] }
+_rotate-env-app = { cwd = 'env', cmd = [
+  'sops', 'rotate', '--in-place', '--', 'app.secret.sops.env',
+] }
+_updatekeys-env-oauth2-proxy = { cwd = 'env', cmd = [
+  'sops', 'updatekeys', '--yes', '--', 'oauth2-proxy.secret.sops.env',
+] }
+_rotate-env-oauth2-proxy = { cwd = 'env', cmd = [
+  'sops', 'rotate', '--in-place', '--', 'oauth2-proxy.secret.sops.env',
+] }
 
 [tool.pixi.feature.secrets.tasks._decrypt-env-app]
 cwd = 'env'
 cmd = ['sops', 'decrypt', '--output=app.secret', '--', 'app.secret.sops.env']
 inputs = ['env/app.secret.sops.env']
 outputs = ['env/app.secret']
-
-[tool.pixi.feature.secrets.tasks._decrypt-env-oauth2-proxy]
-cwd = 'env'
-cmd = ['sops', 'decrypt', '--output=oauth2-proxy.secret', '--', 'oauth2-proxy.secret.sops.env']
-inputs = ['env/oauth2-proxy.secret.sops.env']
-outputs = ['env/oauth2-proxy.secret']
 
 [tool.pixi.feature.secrets.tasks._encrypt-env-app]
 cwd = 'env'
@@ -139,6 +145,12 @@ cmd = [
 inputs = ['env/app.secret']
 outputs = ['env/app.secret.sops.env']
 
+[tool.pixi.feature.secrets.tasks._decrypt-env-oauth2-proxy]
+cwd = 'env'
+cmd = ['sops', 'decrypt', '--output=oauth2-proxy.secret', '--', 'oauth2-proxy.secret.sops.env']
+inputs = ['env/oauth2-proxy.secret.sops.env']
+outputs = ['env/oauth2-proxy.secret']
+
 [tool.pixi.feature.secrets.tasks._encrypt-env-oauth2-proxy]
 cwd = 'env'
 cmd = [
@@ -152,22 +164,6 @@ cmd = [
 ]
 inputs = ['env/oauth2-proxy.secret']
 outputs = ['env/oauth2-proxy.secret.sops.env']
-
-[tool.pixi.feature.secrets.tasks._updatekeys-env-app]
-cwd = 'env'
-cmd = ['sops', 'updatekeys', '--yes', '--', 'app.secret.sops.env']
-
-[tool.pixi.feature.secrets.tasks._rotate-env-app]
-cwd = 'env'
-cmd = ['sops', 'rotate', '--in-place', '--', 'app.secret.sops.env']
-
-[tool.pixi.feature.secrets.tasks._updatekeys-env-oauth2-proxy]
-cwd = 'env'
-cmd = ['sops', 'updatekeys', '--yes', '--', 'oauth2-proxy.secret.sops.env']
-
-[tool.pixi.feature.secrets.tasks._rotate-env-oauth2-proxy]
-cwd = 'env'
-cmd = ['sops', 'rotate', '--in-place', '--', 'oauth2-proxy.secret.sops.env']
 
 
 [tool.mypy]
