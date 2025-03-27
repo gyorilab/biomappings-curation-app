@@ -12,6 +12,17 @@
 * Application capable of building and running Docker Compose stacks, such as
   [OrbStack](https://orbstack.dev)
 
+* Run this command:
+
+    ``` shell
+    git config set --local -- \
+      diff.sopsDiff.textconv 'pixi run --frozen --no-progress --quiet -- sops decrypt --'
+    ```
+
+  Please see [SOPS: Showing diffs in cleartext in
+  Git](https://github.com/getsops/sops#showing-diffs-in-cleartext-in-git) and
+  [`.gitattributes`](.gitattributes) to learn more.
+
 ### Optional
 
 * Configure Git hooks:

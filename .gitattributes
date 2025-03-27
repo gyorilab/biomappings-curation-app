@@ -73,7 +73,7 @@
 
 # https://github.com/getsops/sops#showing-diffs-in-cleartext-in-git
 #
-#   git config --global -- diff.sopsDiff.textconv 'sops -d --'
+#   git config set --global -- diff.sopsDiff.textconv 'sops decrypt --'
 #
 # Temporarily disable with:
 #
@@ -84,5 +84,5 @@
 #   git cat-file/grep --textconv […]
 
 *           txt
-*.sops.*    diff=sopsDiff
-.sops.yaml  !diff
+*.sops.*    !txt -text diff=sopsDiff
+.sops.yaml  txt
