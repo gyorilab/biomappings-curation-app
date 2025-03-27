@@ -1,0 +1,28 @@
+# vim: set ft=yaml :
+
+
+# To learn more about SOPS (Secrets OPerationS), please see:
+#
+#   https://github.com/getsops/sops#readme
+#
+# To update identity encryption keys and rotate data encryption keys, please run:
+#
+#   task update-keys
+#
+# Files may be truncated if decryption fails, so be prepared to restore files if necessary:
+#
+#   https://github.com/getsops/sops/issues/484
+
+
+_defaults:
+
+  keys: &keys
+    # Mike Anselmi
+    #   age139jr20cesyyysf0fmxa2drggz7et03cmnuxf8mwuw7y2ujh9j9rqs6nyps
+    age: >-
+      age139jr20cesyyysf0fmxa2drggz7et03cmnuxf8mwuw7y2ujh9j9rqs6nyps
+
+
+creation_rules:
+
+  - <<: *keys

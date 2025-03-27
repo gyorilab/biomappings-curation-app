@@ -32,6 +32,7 @@ wtforms = { version = '>=3.2.1' }
 [tool.pixi.environments]
 default = { solve-group = 'default' }
 lint = { features = ['lint'], solve-group = 'default' }
+secrets = { features = ['secrets'] }
 
 [tool.pixi.feature.lint.pypi-dependencies]
 mypy = { version = '>=1.15.0', extras = ['faster-cache'] }
@@ -85,6 +86,53 @@ _pre-commit-install-pre-rebase = { cmd = [
 _pre-commit-install-prepare-commit-msg = { cmd = [
   'pre-commit', 'install', '-f', '-t', 'prepare-commit-msg',
 ] }
+
+[tool.pixi.feature.secrets.dependencies]
+age = { version = '>=1.2.1' }
+go-sops = { version = '>=3.9.4' }
+
+[tool.pixi.feature.secrets.tasks]
+decrypt = { depends-on = [
+  '_decrypt-env-oauth2-proxy',
+] }
+encrypt = { depends-on = [
+  '_encrypt-env-oauth2-proxy',
+] }
+refresh-keys = { depends-on = [
+  '_refresh-keys-env-oauth2-proxy',
+] }
+_refresh-keys-env-oauth2-proxy = { depends-on = [
+  '_updatekeys-env-oauth2-proxy',
+  '_rotate-env-oauth2-proxy',
+] }
+
+[tool.pixi.feature.secrets.tasks._decrypt-env-oauth2-proxy]
+cwd = 'env'
+cmd = ['sops', 'decrypt', '--output=oauth2-proxy.secret', '--', 'oauth2-proxy.secret.sops.env']
+inputs = ['env/oauth2-proxy.secret.sops.env']
+outputs = ['env/oauth2-proxy.secret']
+
+[tool.pixi.feature.secrets.tasks._encrypt-env-oauth2-proxy]
+cwd = 'env'
+cmd = [
+  'sops',
+  'encrypt',
+  '--input-type=dotenv',
+  '--output-type=dotenv',
+  '--output=oauth2-proxy.secret.sops.env',
+  '--',
+  'oauth2-proxy.secret',
+]
+inputs = ['env/oauth2-proxy.secret']
+outputs = ['env/oauth2-proxy.secret.sops.env']
+
+[tool.pixi.feature.secrets.tasks._updatekeys-env-oauth2-proxy]
+cwd = 'env'
+cmd = ['sops', 'updatekeys', '--yes', '--', 'oauth2-proxy.secret.sops.env']
+
+[tool.pixi.feature.secrets.tasks._rotate-env-oauth2-proxy]
+cwd = 'env'
+cmd = ['sops', 'rotate', '--in-place', '--', 'oauth2-proxy.secret.sops.env']
 
 
 [tool.mypy]
