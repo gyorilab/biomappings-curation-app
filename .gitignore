@@ -416,4 +416,5 @@ Thumbs.db:encryptable
 
 # Add project-specific patterns here.
 !/env/
+*.env
 *.secret
