@@ -16,7 +16,7 @@
 
     ``` shell
     git config set --local -- \
-      diff.sopsDiff.textconv 'pixi run --frozen --no-progress --quiet -- sops decrypt --'
+      diff.sopsDiff.textconv 'pixi run -e secrets -q --frozen --no-progress -- sops decrypt --'
     ```
 
   Please see [SOPS: Showing diffs in cleartext in
