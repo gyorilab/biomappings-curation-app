@@ -14,9 +14,11 @@ _defaults:
 
   keys: &keys
     # Mike Anselmi
-    #   age139jr20cesyyysf0fmxa2drggz7et03cmnuxf8mwuw7y2ujh9j9rqs6nyps
+    #   age1aq6qcpzwr7tfcvz5dwp23u2mzrqzy0lzugksefuz20xl6ttxsy8scqeks6
+    #   age1nvxdya6huqmldxmlyeg6vpfaeu7g6t4kth6kkwtnln4nppm5mqeshyva8s
     age: >-
-      age139jr20cesyyysf0fmxa2drggz7et03cmnuxf8mwuw7y2ujh9j9rqs6nyps
+      age1aq6qcpzwr7tfcvz5dwp23u2mzrqzy0lzugksefuz20xl6ttxsy8scqeks6,
+      age1nvxdya6huqmldxmlyeg6vpfaeu7g6t4kth6kkwtnln4nppm5mqeshyva8s
 
 
 creation_rules:
