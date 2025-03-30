@@ -91,6 +91,15 @@ _pre-commit-install-prepare-commit-msg = { cmd = [
 go-sops = { version = '>=3.10.0' }
 
 [tool.pixi.feature.secrets.tasks]
+configure-sops-diff = { cmd = [
+  'git',
+  'config',
+  'set',
+  '--local',
+  '--',
+  'diff.sopsDiff.textconv',
+  'pixi run -e secrets -q --frozen --no-progress -- sops decrypt --',
+] }
 decrypt = { depends-on = [
   '_decrypt-env-app',
   '_decrypt-env-oauth2-proxy',

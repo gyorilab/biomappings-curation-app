@@ -5,25 +5,20 @@
 
 ## Prerequisites
 
-### Required
-
 * [Pixi](https://pixi.sh)
 
 * Application capable of building and running Docker Compose stacks, such as
   [OrbStack](https://orbstack.dev)
 
-* Run this command:
+* Configure Git diff behavior for encrypted files:
 
     ``` shell
-    git config set --local -- \
-      diff.sopsDiff.textconv 'pixi run -e secrets -q --frozen --no-progress -- sops decrypt --'
+    pixi run -- configure-sops-diff
     ```
 
   Please see [SOPS: Showing diffs in cleartext in
   Git](https://github.com/getsops/sops#showing-diffs-in-cleartext-in-git) and
   [`.gitattributes`](.gitattributes) to learn more.
-
-### Optional
 
 * Configure Git hooks:
 
