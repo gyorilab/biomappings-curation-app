@@ -22,12 +22,10 @@ from wtforms import StringField, SubmitField
 from biomappings.resources import load_predictions
 from biomappings.utils import (
     check_valid_prefix_id,
-    commit,
-    get_branch,
     get_curie,
-    not_main,
-    push,
 )
+
+BIOMAPPINGS_REPO_DIR = Path("biomappings")
 
 
 class SQLAlchemyBase(DeclarativeBase, MappedAsDataclass):
@@ -158,17 +156,14 @@ def url_for_state(endpoint, state: State, **kwargs) -> str:
     return flask.url_for(endpoint, **vv)
 
 
-def get_app(predictions_path: Path | None = None) -> flask.Flask:
+def get_app(biomappings_repo_dir: Path) -> flask.Flask:
     """Get a curation flask app."""
     app_ = flask.Flask(__name__)
     app_.config["WTF_CSRF_ENABLED"] = False
     app_.config["SECRET_KEY"] = os.urandom(8)
     app_.config["SHOW_RELATIONS"] = True
     app_.config["SHOW_LINES"] = False
-    controller = Controller(predictions_path=predictions_path)
-    if not controller._predictions and predictions_path is not None:
-        msg = f"There are no predictions to curate in {predictions_path}"
-        raise RuntimeError(msg)
+    controller = Controller(biomappings_repo_dir=biomappings_repo_dir)
     app_.config["controller"] = controller
     flask_bootstrap.Bootstrap4(app_)
     app_.register_blueprint(blueprint)
@@ -183,13 +178,14 @@ def get_app(predictions_path: Path | None = None) -> flask.Flask:
 class Controller:
     """A module for interacting with the predictions and mappings."""
 
-    def __init__(self, *, predictions_path: Path | None = None):
+    def __init__(self, *, biomappings_repo_dir: Path):
         """Instantiate the web controller.
 
-        :param predictions_path: A custom predictions file to curate from
+        :param biomappings_repo_dir: path to the Biomappings Git repository
         """
-        self.predictions_path = predictions_path
-        self._predictions = load_predictions(path=self.predictions_path)
+        self._predictions = load_predictions(
+            path=biomappings_repo_dir.joinpath("src", "biomappings", "resources", "predictions.tsv")
+        )
 
     def predictions_from_state(self, state: State) -> Iterable[tuple[int, MappingT[str, Any]]]:
         """Iterate over predictions from a state instance."""
@@ -625,7 +621,6 @@ def add_mapping():
             form.data["target_name"],
             state.user_id,
         )
-        CONTROLLER.persist()
     else:
         flask.flash("missing form data", category="warning")
     return _go_home()
@@ -639,27 +634,23 @@ def clear_user_state():
     return _go_home()
 
 
-@blueprint.route("/commit")
-def run_commit():
-    """Make a commit then redirect to the home page."""
-    user_id = State.from_flask_globals().user_id
-    user_meta = db.session.get_one(UserMeta, user_id)
-    commit_info = commit(
-        f"Curated {user_meta.total_curated} mapping"
-        f"{'s' if user_meta.total_curated > 1 else ''}"
-        f" ({user_id})",
-    )
-    current_app.logger.warning("git commit res: %s", commit_info)
-    if not_main():
-        branch = get_branch()
-        push_output = push(branch_name=branch)
-        current_app.logger.warning("git push res: %s", push_output)
-    else:
-        flask.flash("did not push because on master branch")
-        current_app.logger.warning("did not push because on master branch")
-    db.session.query(UserMeta).filter(UserMeta.user_id == user_id).delete()
-    db.session.commit()
-    return _go_home()
+@blueprint.route("/publish")
+def publish_pr():
+    """Publish a PR, then clear user state and redirect to the home page."""
+    # user_id = State.from_flask_globals().user_id
+    # user_meta = db.session.get_one(UserMeta, user_id)
+    # commit_msg = commit(
+    #     f"Curated {user_meta.total_curated} mapping"
+    #     f"{'s' if user_meta.total_curated > 1 else ''}"
+    #     f" ({user_id})",
+    # )
+
+    # append_true_mappings(entries["correct"], path=self.positives_path)
+    # append_false_mappings(entries["incorrect"], path=self.negatives_path)
+    # append_unsure_mappings(entries["unsure"], path=self.unsure_path)
+    # write_predictions(self._predictions, path=self.predictions_path)
+
+    return _go_clear_user_state()
 
 
 CORRECT = {"yup", "true", "t", "correct", "right", "close enough", "disco"}
@@ -690,12 +681,18 @@ def mark(line: int, value: str):
     return _go_home()
 
 
+def _go_clear_user_state():
+    state = State.from_flask_globals()
+    return flask.redirect(url_for_state(".clear_user_state", state))
+
+
 def _go_home():
     state = State.from_flask_globals()
     return flask.redirect(url_for_state(".home", state))
 
 
-app = get_app(predictions_path=Path("predictions.tsv"))
+app = get_app(biomappings_repo_dir=BIOMAPPINGS_REPO_DIR)
+
 
 if __name__ == "__main__":
     app.run()

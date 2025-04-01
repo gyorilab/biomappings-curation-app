@@ -25,7 +25,6 @@ flask-sqlalchemy = { version = '>=3.1.1' }
 flask-wtf = { version = '>=1.2.2' }
 psycopg = { version = '>=3.2.6', extras = ['binary'] }
 pydantic = { version = '>=2.11.1' }
-pygithub = { version = '>=2.6.1' }
 sqlalchemy = { version = '>=2.0.40' }
 werkzeug = { version = '>=3.1.3' }
 wtforms = { version = '>=3.2.1' }
@@ -40,7 +39,7 @@ mypy = { version = '>=1.15.0', extras = ['faster-cache'] }
 pre-commit = { version = '>=4.2.0' }
 pre-commit-hooks = { version = '>=5.0.0' }
 ruff = { version = '>=0.11.2' }
-types-wtforms = { version = '>=3.2.1.20250304' }
+types-wtforms = { version = '>=3.2.1.20250401' }
 
 [tool.pixi.feature.lint.tasks]
 lint = { depends-on = ['pre-commit-run'] }
@@ -89,9 +88,13 @@ _pre-commit-install-prepare-commit-msg = { cmd = [
 ] }
 
 [tool.pixi.feature.secrets.dependencies]
-go-sops = { version = '>=3.10.0' }
+go-sops = { version = '>=3.10.1' }
 
 [tool.pixi.feature.secrets.tasks]
+clone-biomappings-repo = { depends-on = [
+  '_rm-biomappings-repo',
+  '_clone-biomappings-repo',
+] }
 configure-sops-diff = { cmd = [
   'git',
   'config',
@@ -101,87 +104,36 @@ configure-sops-diff = { cmd = [
   'diff.sopsDiff.textconv',
   'pixi run -e secrets -q --frozen --no-progress -- sops decrypt --',
 ] }
-decrypt = { depends-on = [
-  '_decrypt-env-app',
-  '_decrypt-env-oauth2-proxy',
-] }
-encrypt = { depends-on = [
-  '_encrypt-env-app',
-  '_encrypt-env-oauth2-proxy',
-] }
-refresh-keys = { depends-on = [
-  '_refresh-keys-env-app',
-  '_refresh-keys-env-oauth2-proxy',
-] }
-_refresh-keys-env-app = { depends-on = [
-  '_updatekeys-env-app',
-  '_rotate-env-app',
-] }
-_refresh-keys-env-oauth2-proxy = { depends-on = [
-  '_updatekeys-env-oauth2-proxy',
-  '_rotate-env-oauth2-proxy',
-] }
-
-[tool.pixi.feature.secrets.tasks._decrypt-env-app]
-cwd = 'env'
-cmd = ['sops', 'decrypt', '--output=app.secret', '--', 'app.secret.sops.env']
-inputs = ['env/app.secret.sops.env']
-outputs = ['env/app.secret']
-
-[tool.pixi.feature.secrets.tasks._encrypt-env-app]
-cwd = 'env'
-cmd = [
+down = { cmd = [
   'sops',
-  'encrypt',
-  '--input-type=dotenv',
-  '--output-type=dotenv',
-  '--output=app.secret.sops.env',
+  'exec-env',
+  '--same-process',
   '--',
-  'app.secret',
-]
-inputs = ['.sops.yaml', 'env/app.secret']
-outputs = ['env/app.secret.sops.env']
-
-[tool.pixi.feature.secrets.tasks._updatekeys-env-app]
-cwd = 'env'
-cmd = ['sops', 'updatekeys', '--yes', '--', 'app.secret.sops.env']
-
-[tool.pixi.feature.secrets.tasks._rotate-env-app]
-cwd = 'env'
-cmd = ['sops', 'rotate', '--in-place', '--', 'app.secret.sops.env']
-
-[tool.pixi.feature.secrets.tasks._decrypt-env-oauth2-proxy]
-cwd = 'env'
-cmd = ['sops', 'decrypt', '--output=oauth2-proxy.secret', '--', 'oauth2-proxy.secret.sops.env']
-inputs = ['env/oauth2-proxy.secret.sops.env']
-outputs = ['env/oauth2-proxy.secret']
-
-[tool.pixi.feature.secrets.tasks._encrypt-env-oauth2-proxy]
-cwd = 'env'
-cmd = [
+  'env/secret.env.sops.env',
+  'docker compose down',
+] }
+edit-secrets = { cmd = ['sops', 'edit', '--', 'env/secret.env.sops.env'] }
+refresh-keys = { depends-on = ['_updatekeys', '_rotate'] }
+up = { cmd = [
   'sops',
-  'encrypt',
-  '--input-type=dotenv',
-  '--output-type=dotenv',
-  '--output=oauth2-proxy.secret.sops.env',
+  'exec-env',
+  '--same-process',
   '--',
-  'oauth2-proxy.secret',
-]
-inputs = ['.sops.yaml', 'env/oauth2-proxy.secret']
-outputs = ['env/oauth2-proxy.secret.sops.env']
+  'env/secret.env.sops.env',
+  'docker compose up',
+] }
+_rm-biomappings-repo = { cmd = ['rm', '-fr', '--', 'resources/biomappings'] }
+_rotate = { cmd = ['sops', 'rotate', '--in-place', '--', 'env/secret.env.sops.env'] }
+_update-keys = { cmd = ['sops', 'updatekeys', '--yes', '--', 'env/secret.env.sops.env'] }
 
-[tool.pixi.feature.secrets.tasks._updatekeys-env-oauth2-proxy]
-cwd = 'env'
-cmd = ['sops', 'updatekeys', '--yes', '--', 'oauth2-proxy.secret.sops.env']
-
-[tool.pixi.feature.secrets.tasks._rotate-env-oauth2-proxy]
-cwd = 'env'
-cmd = ['sops', 'rotate', '--in-place', '--', 'oauth2-proxy.secret.sops.env']
+[tool.pixi.feature.secrets.tasks._clone-biomappings-repo]
+env = { REPOSITORY_URL = 'https://github.com/manselmi/biomappings.git' }
+cmd = '''sops exec-env --same-process -- env/secret.env.sops.env 'git clone --config=credential.helper='"'"'!f() { [[ "${1}" == "get" ]] && printf -- "%s\n" authtype=basic "credential=$(printf -- "%s" "oauth2:${GITHUB_TOKEN}" | base64)" ephemeral=true; }; f'"'"' --depth=1 -- "${REPOSITORY_URL}" resources/biomappings';'''
 
 
 [tool.mypy]
 exclude = [
-  '^submodules/',
+  '^resources/biomappings/',
 ]
 local_partial_types = true
 plugins = [
@@ -208,7 +160,7 @@ warn_required_dynamic_aliases = true
 
 [tool.ruff]
 extend-exclude = [
-  'submodules',
+  'resources/biomappings',
 ]
 line-length = 100
 target-version = 'py313'
@@ -256,7 +208,6 @@ known-third-party = [
   'flask_sqlalchemy',
   'flask_wtf',
   'pydantic',
-  'pygithub',
   'sqlalchemy',
   'werkzeug',
   'wtforms',

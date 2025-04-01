@@ -14,15 +14,9 @@ services:
       - 'app'
       - 'oauth2-proxy'
     env_file:
-      - path: './env/common.secret'
-        format: 'raw'
+      - path: './env/common.env'
         required: false
-      - path: './env/common.public'
-        required: false
-      - path: './env/caddy.secret'
-        format: 'raw'
-        required: false
-      - path: './env/caddy.public'
+      - path: './env/caddy.env'
         required: false
     image: 'docker.io/library/caddy:2.9.1'
     networks:
@@ -49,16 +43,13 @@ services:
   oauth2-proxy:
     command: ['--config', '/etc/oauth2-proxy/oauth2-proxy.toml']
     env_file:
-      - path: './env/common.secret'
-        format: 'raw'
+      - path: './env/common.env'
         required: false
-      - path: './env/common.public'
+      - path: './env/oauth2-proxy.env'
         required: false
-      - path: './env/oauth2-proxy.secret'
-        format: 'raw'
-        required: false
-      - path: './env/oauth2-proxy.public'
-        required: false
+    environment:
+      OAUTH2_PROXY_CLIENT_SECRET: '${OAUTH2_PROXY_CLIENT_SECRET}'
+      OAUTH2_PROXY_COOKIE_SECRET: '${OAUTH2_PROXY_COOKIE_SECRET}'
     image: 'quay.io/oauth2-proxy/oauth2-proxy:v7.8.2'
     networks:
       - 'external'
@@ -71,15 +62,9 @@ services:
 
   postgres:
     env_file:
-      - path: './env/common.secret'
-        format: 'raw'
+      - path: './env/common.env'
         required: false
-      - path: './env/common.public'
-        required: false
-      - path: './env/postgres.secret'
-        format: 'raw'
-        required: false
-      - path: './env/postgres.public'
+      - path: './env/postgres.env'
         required: false
     image: 'docker.io/library/postgres:17.4'
     networks:
@@ -98,21 +83,14 @@ services:
     depends_on:
       - 'postgres'
     env_file:
-      - path: './env/common.secret'
-        format: 'raw'
+      - path: './env/common.env'
         required: false
-      - path: './env/common.public'
+      - path: './env/postgres.env'
         required: false
-      - path: './env/postgres.secret'
-        format: 'raw'
+      - path: './env/app.env'
         required: false
-      - path: './env/postgres.public'
-        required: false
-      - path: './env/app.secret'
-        format: 'raw'
-        required: false
-      - path: './env/app.public'
-        required: false
+    environment:
+      GITHUB_TOKEN: '${GITHUB_TOKEN}'
     networks:
       - 'external'
       - 'internal'
@@ -126,8 +104,8 @@ services:
         target: '/app/templates'
         type: 'bind'
         read_only: true
-      - source: './submodules/biomappings/src/biomappings/resources/predictions.tsv'
-        target: '/app/predictions.tsv'
+      - source: './resources/biomappings'
+        target: '/app/biomappings'
         type: 'bind'
         read_only: true
 

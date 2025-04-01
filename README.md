@@ -10,6 +10,12 @@
 * Application capable of building and running Docker Compose stacks, such as
   [OrbStack](https://orbstack.dev)
 
+* Configure Git hooks:
+
+    ``` shell
+    pixi run -- pre-commit-install
+    ```
+
 * Configure Git diff behavior for encrypted files:
 
     ``` shell
@@ -20,17 +26,11 @@
   Git](https://github.com/getsops/sops#showing-diffs-in-cleartext-in-git) and
   [`.gitattributes`](.gitattributes) to learn more.
 
-* Configure Git hooks:
+* Clone the Biomappings repository:
 
     ``` shell
-    pixi run -- pre-commit-install
+    pixi run -- clone-biomappings-repo
     ```
-
-## Decrypt secrets
-
-``` shell
-pixi run -- decrypt
-```
 
 ## Update `/etc/hosts`
 
@@ -49,7 +49,7 @@ Place a trusted TLS cert with SAN `*.gyori-mac.localdomain` and corresponding ke
 ## Launch
 
 ``` shell
-docker-compose up
+pixi run -- up
 ```
 
 [Biomappings curation app](https://app.gyori-mac.localdomain)
