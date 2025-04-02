@@ -3,14 +3,13 @@
 
 # https://caddyserver.com/docs/caddyfile/options
 {
-  debug
   servers {
     trusted_proxies static private_ranges
     trusted_proxies_strict
   }
 }
 
-app.gyori-mac.localdomain {
+{$HOSTNAME} {
   tls internal
 
   handle /oauth2/* {
