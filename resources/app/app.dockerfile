@@ -1,7 +1,7 @@
 # vim: set ft=dockerfile :
 
 
-FROM ghcr.io/prefix-dev/pixi:0.43.3
+FROM ghcr.io/prefix-dev/pixi:0.44.0
 LABEL maintainer="Mike Anselmi <git@manselmi.com>"
 
 # Change working directory.

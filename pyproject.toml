@@ -23,6 +23,7 @@ bootstrap-flask = { version = '>=2.4.2' }
 flask = { version = '>=3.1.0' }
 flask-sqlalchemy = { version = '>=3.1.1' }
 flask-wtf = { version = '>=1.2.2' }
+gunicorn = { version = '>=23.0.0' }
 psycopg = { version = '>=3.2.6', extras = ['binary'] }
 pydantic = { version = '>=2.11.1' }
 sqlalchemy = { version = '>=2.0.40' }
@@ -128,7 +129,7 @@ _update-keys = { cmd = ['sops', 'updatekeys', '--yes', '--', 'env/secret.env.sop
 
 [tool.pixi.feature.secrets.tasks._clone-biomappings-repo]
 env = { REPOSITORY_URL = 'https://github.com/manselmi/biomappings.git' }
-cmd = '''sops exec-env --same-process -- env/secret.env.sops.env 'git clone --config=credential.helper='"'"'!f() { [[ "${1}" == "get" ]] && printf -- "%s\n" authtype=basic "credential=$(printf -- "%s" "oauth2:${GITHUB_TOKEN}" | base64)" ephemeral=true; }; f'"'"' --depth=1 -- "${REPOSITORY_URL}" resources/biomappings';'''
+cmd = '''sops exec-env --same-process -- env/secret.env.sops.env 'git clone --config=credential.helper='"'"'!f() { [[ "${1}" == "get" ]] && builtin printf -- "%s\n" authtype=basic "credential=$(builtin printf -- "%s" "oauth2:${GITHUB_TOKEN}" | base64)" ephemeral=true; }; f'"'"' --depth=1 -- "${REPOSITORY_URL}" resources/biomappings';'''
 
 
 [tool.mypy]
