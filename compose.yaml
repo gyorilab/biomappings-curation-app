@@ -15,9 +15,7 @@ services:
       - 'oauth2-proxy'
     env_file:
       - path: './env/common.env'
-        required: false
       - path: './env/caddy.env'
-        required: false
     image: 'docker.io/library/caddy:2.9.1'
     networks:
       - 'external'
@@ -40,9 +38,7 @@ services:
     command: ['--config', '/etc/oauth2-proxy/oauth2-proxy.toml']
     env_file:
       - path: './env/common.env'
-        required: false
       - path: './env/oauth2-proxy.env'
-        required: false
     environment:
       OAUTH2_PROXY_CLIENT_SECRET: '${OAUTH2_PROXY_CLIENT_SECRET}'
       OAUTH2_PROXY_COOKIE_SECRET: '${OAUTH2_PROXY_COOKIE_SECRET}'
@@ -59,9 +55,7 @@ services:
   postgres:
     env_file:
       - path: './env/common.env'
-        required: false
       - path: './env/postgres.env'
-        required: false
     image: 'docker.io/library/postgres:17.4'
     networks:
       - 'internal'
@@ -86,11 +80,8 @@ services:
       - 'postgres'
     env_file:
       - path: './env/common.env'
-        required: false
       - path: './env/postgres.env'
-        required: false
       - path: './env/app.env'
-        required: false
     environment:
       GITHUB_TOKEN: '${GITHUB_TOKEN}'
     networks:
