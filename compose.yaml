@@ -88,6 +88,7 @@ services:
       - 'external'
       - 'internal'
     restart: 'unless-stopped'
+    stop_grace_period: '1s'
     volumes:
       - source: './app.py'
         target: '/app/app.py'

@@ -34,6 +34,11 @@
                                 <span class="glyphicon glyphicon-floppy-remove" aria-hidden="true"></span>
                             </button>
                         </a>
+                        <a href="{{ url_for_state('.publish_pr', state) }}">
+                            <button class="btn btn-sm btn-outline-dark">Publish pull request
+                                <span class="glyphicon glyphicon-arrow-up" aria-hidden="true"></span>
+                            </button>
+                        </a>
                     {% endif %}
                     {% if query %}
                         <span class="btn btn-sm btn-outline-dark">

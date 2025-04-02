@@ -25,6 +25,7 @@ flask = { version = '>=3.1.0' }
 flask-sqlalchemy = { version = '>=3.1.1' }
 flask-wtf = { version = '>=1.2.2' }
 gunicorn = { version = '>=23.0.0', extras = ['gthread'] }
+httpx = { version = '>=0.28.1', extras = ['http2'] }
 psycopg = { version = '>=3.2.6', extras = ['binary'] }
 pydantic = { version = '>=2.11.1' }
 sqlalchemy = { version = '>=2.0.40' }
@@ -189,6 +190,8 @@ ignore = [
   'Q001',     # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
   'Q002',     # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
   'Q003',     # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
+  'S603',
+  'S607',
   'SLF001',
   'TCH',      # TYPE_CHECKING blocks break autodocs
   'TRY003',
@@ -209,6 +212,7 @@ known-third-party = [
   'flask_bootstrap',
   'flask_sqlalchemy',
   'flask_wtf',
+  'httpx',
   'pydantic',
   'sqlalchemy',
   'werkzeug',

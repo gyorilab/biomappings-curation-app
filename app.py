@@ -1,10 +1,15 @@
 """Web curation interface for :mod:`biomappings`."""
 
+import operator
 import os
+import shutil
+import subprocess
+import uuid
 from collections import Counter
 from collections.abc import Iterable, Mapping as MappingT
 from copy import deepcopy
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any
 
 import bioregistry
@@ -13,19 +18,60 @@ import flask_bootstrap
 from flask import current_app
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm
+from httpx import Auth, Client, Headers, Timeout, codes
 from pydantic import BaseModel
 from sqlalchemy.orm import DeclarativeBase, Mapped, MappedAsDataclass, mapped_column
 from sqlalchemy.schema import MetaData, PrimaryKeyConstraint
 from werkzeug.local import LocalProxy
 from wtforms import StringField, SubmitField
 
-from biomappings.resources import load_predictions
-from biomappings.utils import (
-    check_valid_prefix_id,
-    get_curie,
+from biomappings.resources import (
+    append_false_mappings,
+    append_true_mappings,
+    append_unsure_mappings,
+    load_predictions,
+    write_predictions,
 )
+from biomappings.utils import check_valid_prefix_id, get_curie
 
 BIOMAPPINGS_REPO_DIR = Path("biomappings")
+HTTPX_HTTP2 = True
+HTTPX_TIMEOUT = Timeout(5.0)  # seconds
+
+
+class BearerTokenAuth(Auth):
+    def __init__(self, token):
+        self.token = token
+
+    def auth_flow(self, request):
+        request.headers["Authorization"] = f"Bearer {self.token}"
+        yield request
+
+
+def get_biomappings_repo_client():
+    return Client(
+        auth=BearerTokenAuth(os.environ["GITHUB_TOKEN"]),
+        base_url=os.environ["GITHUB_API_BASE_URL"],
+        event_hooks={"response": [operator.methodcaller("raise_for_status")]},
+        headers=Headers(
+            {
+                "Accept": "application/vnd.github+json",
+                "X-GitHub-Api-Version": "2022-11-28",
+            }
+        ),
+        http2=HTTPX_HTTP2,
+        timeout=HTTPX_TIMEOUT,
+    )
+
+
+def delete_branch_if_exists(client, branch):
+    response = client.delete(f"/git/refs/heads/{branch}")
+    if response.is_error and not (
+        response.status_code == codes.UNPROCESSABLE_ENTITY
+        and response.json()["message"] == "Reference does not exist"
+    ):
+        response.raise_for_status()
+    return response
 
 
 class SQLAlchemyBase(DeclarativeBase, MappedAsDataclass):
@@ -183,6 +229,7 @@ class Controller:
 
         :param biomappings_repo_dir: path to the Biomappings Git repository
         """
+        self.biomappings_repo_dir = biomappings_repo_dir
         self._predictions = load_predictions(
             path=biomappings_repo_dir.joinpath("src", "biomappings", "resources", "predictions.tsv")
         )
@@ -637,18 +684,95 @@ def clear_user_state():
 @blueprint.route("/publish")
 def publish_pr():
     """Publish a PR, then clear user state and redirect to the home page."""
-    # user_id = State.from_flask_globals().user_id
-    # user_meta = db.session.get_one(UserMeta, user_id)
-    # commit_msg = commit(
-    #     f"Curated {user_meta.total_curated} mapping"
-    #     f"{'s' if user_meta.total_curated > 1 else ''}"
-    #     f" ({user_id})",
-    # )
+    user_id = State.from_flask_globals().user_id
+    user_meta = db.session.get_one(UserMeta, user_id)
+    commit_msg = (
+        f"Curated {user_meta.total_curated} mapping"
+        f"{'s' if user_meta.total_curated > 1 else ''} ({user_id})",
+    )
 
-    # append_true_mappings(entries["correct"], path=self.positives_path)
-    # append_false_mappings(entries["incorrect"], path=self.negatives_path)
-    # append_unsure_mappings(entries["unsure"], path=self.unsure_path)
-    # write_predictions(self._predictions, path=self.predictions_path)
+    true_mappings = []
+    false_mappings = []
+    unsure_mappings = []
+    prediction_lines = set()
+    for mapping in db.session.query(Mapping).filter(Mapping.source == user_id):
+        kind = mapping.kind
+        line = mapping.line
+        dict_ = {
+            "source prefix": mapping.source_prefix,
+            "source identifier": mapping.source_identifier,
+            "source name": mapping.source_name,
+            "relation": mapping.relation,
+            "target prefix": mapping.target_prefix,
+            "target identifier": mapping.target_identifier,
+            "target name": mapping.target_name,
+            "source": mapping.source,
+            "type": mapping.type,
+            "prediction_type": mapping.prediction_type,
+            "prediction_source": mapping.prediction_source,
+            "prediction_confidence": mapping.prediction_confidence,
+        }
+        if kind == "correct":
+            true_mappings.append(dict_)
+        elif kind == "incorrect":
+            false_mappings.append(dict_)
+        elif kind == "unsure":
+            unsure_mappings.append(dict_)
+        else:
+            raise ValueError
+        if line is not None:
+            prediction_lines.add(line)
+
+    predictions = CONTROLLER._predictions
+
+    with TemporaryDirectory() as _tmp_dir:
+        repo_dir = Path(_tmp_dir)
+        shutil.copytree(
+            CONTROLLER.biomappings_repo_dir,
+            repo_dir,
+            dirs_exist_ok=True,
+            ignore_dangling_symlinks=True,
+        )
+        shutil.rmtree(repo_dir.joinpath(".git", "hooks"), ignore_errors=True)
+
+        resources_dir = repo_dir.joinpath("src", "biomappings", "resources")
+        true_path = resources_dir.joinpath("mappings.tsv")
+        false_path = resources_dir.joinpath("incorrect.tsv")
+        unsure_path = resources_dir.joinpath("unsure.tsv")
+        predictions_path = resources_dir.joinpath("predictions.tsv")
+
+        append_true_mappings(true_mappings, path=true_path)
+        append_false_mappings(false_mappings, path=false_path)
+        append_unsure_mappings(unsure_mappings, path=unsure_path)
+        write_predictions(
+            (
+                prediction
+                for line, prediction in enumerate(predictions)
+                if line not in prediction_lines
+            ),
+            path=predictions_path,
+        )
+
+        base_branch = "master"
+        branch = f"{user_id}_{uuid.uuid4()}".replace(":", "_")
+        subprocess.run(["git", "switch", "-c", branch], check=True, cwd=repo_dir)
+        subprocess.run(["git", "commit", "--all", "-m", commit_msg], check=True, cwd=repo_dir)
+
+        with get_biomappings_repo_client() as client:
+            try:
+                subprocess.run(["git", "push", "--", "origin", branch], check=True, cwd=repo_dir)
+                client.post(
+                    "/pulls",
+                    json={
+                        "base": base_branch,
+                        "body": commit_msg,
+                        "head": branch,
+                        "title": branch,
+                    },
+                )
+            except Exception:
+                delete_branch_if_exists(client, branch)
+                raise
 
     return _go_clear_user_state()
 
