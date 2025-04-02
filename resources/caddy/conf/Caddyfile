@@ -47,6 +47,13 @@ app.gyori-mac.localdomain {
     }
 
     # If oauth2-proxy returns a 2xx status, the request is then proxied to the upstream.
-    reverse_proxy http://app:5000
+    reverse_proxy http://app:5000 {
+      # "[Y]ou need to make sure that [the proxy server] buffers slow clients when you use
+      # default Gunicorn workers. Without this buffering Gunicorn will be easily susceptible to
+      # denial-of-service attacks."
+      #
+      # https://docs.gunicorn.org/en/stable/deploy.html
+      request_buffers unlimited
+    }
   }
 }

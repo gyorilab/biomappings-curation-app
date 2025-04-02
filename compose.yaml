@@ -75,7 +75,13 @@ services:
     build:
       context: '.'
       dockerfile: './resources/app/app.dockerfile'
-    command: ["gunicorn", "--bind=0.0.0.0:5000", "--workers=4", "--", "app:app"]
+    command:
+      - 'gunicorn'
+      - '--bind=0.0.0.0:5000'
+      - '--worker-class=gthread'
+      - '--workers=4'
+      - '--'
+      - 'app:app'
     depends_on:
       - 'postgres'
     env_file:

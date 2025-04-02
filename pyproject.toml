@@ -23,7 +23,7 @@ bootstrap-flask = { version = '>=2.4.2' }
 flask = { version = '>=3.1.0' }
 flask-sqlalchemy = { version = '>=3.1.1' }
 flask-wtf = { version = '>=1.2.2' }
-gunicorn = { version = '>=23.0.0' }
+gunicorn = { version = '>=23.0.0', extras = ['gthread'] }
 psycopg = { version = '>=3.2.6', extras = ['binary'] }
 pydantic = { version = '>=2.11.1' }
 sqlalchemy = { version = '>=2.0.40' }
