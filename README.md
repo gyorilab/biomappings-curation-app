@@ -36,8 +36,8 @@
 
 ``` shell
 printf -- '%s\n' \
-    '::1 app.gyori-mac.localdomain' \
-    '127.0.0.1 app.gyori-mac.localdomain' \
+    '::1 curate.biomappings.io' \
+    '127.0.0.1 curate.biomappings.io' \
   | sudo -- tee -a -- /etc/hosts > /dev/null
 ```
 
@@ -47,4 +47,4 @@ printf -- '%s\n' \
 pixi run -- up
 ```
 
-[Biomappings curation app](https://app.gyori-mac.localdomain)
+[Biomappings curation app](https://curate.biomappings.io)
