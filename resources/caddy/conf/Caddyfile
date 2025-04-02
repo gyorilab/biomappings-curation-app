@@ -4,18 +4,15 @@
 # https://caddyserver.com/docs/caddyfile/options
 {
   debug
-  auto_https disable_certs
   servers {
     trusted_proxies static private_ranges
     trusted_proxies_strict
   }
 }
 
-*.gyori-mac.localdomain {
-  tls "/tls/cert.pem" "/tls/key.pem"
-}
-
 app.gyori-mac.localdomain {
+  tls internal
+
   handle /oauth2/* {
     reverse_proxy http://oauth2-proxy:4180 {
       # oauth2-proxy requires the X-Real-IP and X-Forwarded-{Proto,Host,Uri} headers. The

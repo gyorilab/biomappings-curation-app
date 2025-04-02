@@ -41,11 +41,6 @@ printf -- '%s\n' \
   | sudo -- tee -a -- /etc/hosts > /dev/null
 ```
 
-## TLS cert
-
-Place a trusted TLS cert with SAN `*.gyori-mac.localdomain` and corresponding key at
-`~/.pki/private/x509/gyori-mac/{cert.pem,key.pem}`, respectively.
-
 ## Launch
 
 ``` shell

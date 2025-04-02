@@ -28,10 +28,6 @@ services:
         target: 443
     restart: 'unless-stopped'
     volumes:
-      - source: '${HOME}/.pki/private/x509/gyori-mac'
-        target: '/tls'
-        type: 'bind'
-        read_only: true
       - source: './resources/caddy/conf'
         target: '/etc/caddy'
         type: 'bind'
