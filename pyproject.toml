@@ -14,7 +14,6 @@ platforms = [
 ]
 
 [tool.pixi.dependencies]
-git = { version = '>=2.49.0' }
 python = { version = '>=3.13.2,<3.14' }
 
 [tool.pixi.pypi-dependencies]
