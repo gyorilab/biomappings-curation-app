@@ -131,8 +131,8 @@ _rotate = { cmd = ['sops', 'rotate', '--in-place', '--', 'env/secret.env.sops.en
 _update-keys = { cmd = ['sops', 'updatekeys', '--yes', '--', 'env/secret.env.sops.env'] }
 
 [tool.pixi.feature.secrets.tasks._clone-biomappings-repo]
-env = { OWNER = 'manselmi', REPOSITORY = 'https://github.com/$OWNER/biomappings.git' }
-cmd = '''sops exec-env --same-process -- env/secret.env.sops.env 'git clone --config=credential.useHttpPath=true --config="credential.${REPOSITORY}.helper"='"'"'!f() { test "${1}" = "get" && printf "%s\n" authtype=basic "credential=$(printf "%s" "oauth2:${GITHUB_TOKEN}" | base64 -w 0)" ephemeral=true; }; f'"'"' --depth=1 --origin="${OWNER}" -- "${REPOSITORY}" resources/biomappings';'''
+env = { REPOSITORY = 'https://github.com/manselmi/biomappings.git' }
+cmd = '''sops exec-env --same-process -- env/secret.env.sops.env 'git clone --config=credential.useHttpPath=true --config="credential.${REPOSITORY}.helper"='"'"'!f() { test "${1}" = "get" && printf "%s\n" authtype=basic "credential=$(printf "%s" "oauth2:${GITHUB_TOKEN}" | base64 -w 0)" ephemeral=true; }; f'"'"' --depth=1 --origin=origin -- "${REPOSITORY}" resources/biomappings';'''
 
 
 [tool.mypy]

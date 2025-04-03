@@ -47,6 +47,10 @@ from biomappings.resources import (
 )
 from biomappings.utils import check_valid_prefix_id, get_curie
 
+AUTHOR_EMAIL = os.environ["COMMITTER_EMAIL"]
+BASE_BRANCH = os.environ["BASE_BRANCH"]
+COMMITTER_EMAIL = os.environ["COMMITTER_EMAIL"]
+COMMITTER_NAME = os.environ["COMMITTER_NAME"]
 LOGIN_REQUIRED_MSG = "Login required"
 NUM_RETRIES = 3
 TIMEOUT = datetime.timedelta(seconds=3)
@@ -244,7 +248,7 @@ def get_app(biomappings_path: Path) -> flask.Flask:
 class Controller:
     """A module for interacting with the predictions and mappings."""
 
-    def __init__(self, *, biomappings_path: Path):
+    def __init__(self, *, biomappings_path: Path) -> None:
         """Instantiate the web controller.
 
         :param biomappings_path: path to the Biomappings Git repository
@@ -609,12 +613,53 @@ class Controller:
         db.session.commit()
 
     @staticmethod
-    def clear_user_state(user_id: str):
+    def clear_user_state(user_id: str) -> None:
         """Clear all user-specific state."""
         db.session.query(Mark).filter(Mark.user_id == user_id).delete()
         db.session.query(UserMeta).filter(UserMeta.user_id == user_id).delete()
         db.session.query(Mapping).filter(Mapping.source == user_id).delete()
         db.session.commit()
+
+    def get_all_mappings(self, user_id: str):
+        true_mappings = []
+        false_mappings = []
+        unsure_mappings = []
+        marked = set()
+
+        for mapping in db.session.query(Mapping).filter(Mapping.source == user_id):
+            kind = mapping.kind
+            line = mapping.line
+            dict_ = {
+                "source prefix": mapping.source_prefix,
+                "source identifier": mapping.source_identifier,
+                "source name": mapping.source_name,
+                "relation": mapping.relation,
+                "target prefix": mapping.target_prefix,
+                "target identifier": mapping.target_identifier,
+                "target name": mapping.target_name,
+                "source": mapping.source,
+                "type": mapping.type,
+                "prediction_type": mapping.prediction_type,
+                "prediction_source": mapping.prediction_source,
+                "prediction_confidence": mapping.prediction_confidence,
+            }
+            if kind == "correct":
+                true_mappings.append(dict_)
+            elif kind == "incorrect":
+                false_mappings.append(dict_)
+            elif kind == "unsure":
+                unsure_mappings.append(dict_)
+            else:
+                raise ValueError
+            if line is not None:
+                marked.add(line)
+
+        return (
+            true_mappings,
+            false_mappings,
+            unsure_mappings,
+            (prediction for line, prediction in enumerate(self._predictions) if line not in marked),
+        )
 
 
 CONTROLLER: Controller = LocalProxy(lambda: current_app.config["controller"])  # type: ignore[assignment]
@@ -719,57 +764,26 @@ def publish_pr():
         flask.flash(LOGIN_REQUIRED_MSG, category="warning")
         return _go_home()
 
-    user_meta = db.session.get_one(UserMeta, user_id)
-    commit_msg = (
-        f"Curated {user_meta.total_curated} mapping"
-        f"{'s' if user_meta.total_curated > 1 else ''} ({user_id})"
+    true_mappings, false_mappings, unsure_mappings, predicted_mappings = (
+        CONTROLLER.get_all_mappings(user_id)
     )
+    total_curated = len(true_mappings) + len(false_mappings) + len(unsure_mappings)
 
-    true_mappings = []
-    false_mappings = []
-    unsure_mappings = []
-    prediction_lines = set()
-    for mapping in db.session.query(Mapping).filter(Mapping.source == user_id):
-        kind = mapping.kind
-        line = mapping.line
-        dict_ = {
-            "source prefix": mapping.source_prefix,
-            "source identifier": mapping.source_identifier,
-            "source name": mapping.source_name,
-            "relation": mapping.relation,
-            "target prefix": mapping.target_prefix,
-            "target identifier": mapping.target_identifier,
-            "target name": mapping.target_name,
-            "source": mapping.source,
-            "type": mapping.type,
-            "prediction_type": mapping.prediction_type,
-            "prediction_source": mapping.prediction_source,
-            "prediction_confidence": mapping.prediction_confidence,
-        }
-        if kind == "correct":
-            true_mappings.append(dict_)
-        elif kind == "incorrect":
-            false_mappings.append(dict_)
-        elif kind == "unsure":
-            unsure_mappings.append(dict_)
-        else:
-            raise ValueError
-        if line is not None:
-            prediction_lines.add(line)
+    head = f"{user_id}_{uuid.uuid4()}".replace(":", "_")
+    author = f"{user_id} <{AUTHOR_EMAIL}>"
+    commit_msg = f"Curated {total_curated} mapping{'s' if total_curated > 1 else ''} ({user_id})"
 
-    predictions = CONTROLLER._predictions
-
-    with TemporaryDirectory() as _tmp_dir:
-        repo_dir = Path(_tmp_dir)
+    with TemporaryDirectory() as _tmp_path:
+        tmp_path = Path(_tmp_path)
         shutil.copytree(
             CONTROLLER.biomappings_path,
-            repo_dir,
+            tmp_path,
             dirs_exist_ok=True,
             ignore_dangling_symlinks=True,
         )
-        shutil.rmtree(repo_dir.joinpath(".git", "hooks"), ignore_errors=True)
+        shutil.rmtree(tmp_path.joinpath(".git", "hooks"), ignore_errors=True)
 
-        resources_dir = repo_dir.joinpath("src", "biomappings", "resources")
+        resources_dir = tmp_path.joinpath("src", "biomappings", "resources")
         true_path = resources_dir.joinpath("mappings.tsv")
         false_path = resources_dir.joinpath("incorrect.tsv")
         unsure_path = resources_dir.joinpath("unsure.tsv")
@@ -778,41 +792,28 @@ def publish_pr():
         append_true_mappings(true_mappings, path=true_path)
         append_false_mappings(false_mappings, path=false_path)
         append_unsure_mappings(unsure_mappings, path=unsure_path)
-        write_predictions(
-            (
-                prediction
-                for line, prediction in enumerate(predictions)
-                if line not in prediction_lines
-            ),
-            path=predictions_path,
-        )
-
-        base_branch = "master"
-        branch = f"{user_id}_{uuid.uuid4()}".replace(":", "_")
-        email = f"noreply@{os.environ['HOSTNAME']}"
-        author = f"{user_id} <{email}>"
+        write_predictions(predicted_mappings, path=predictions_path)
 
         run = functools.partial(
             subprocess.run,
             check=True,
-            cwd=repo_dir,
+            cwd=tmp_path,
             timeout=TIMEOUT.total_seconds(),
         )
 
-        run(["git", "switch", "-c", branch])
-        run(["git", "config", "set", "--local", "--", "push.default", "current"])
-        run(["git", "config", "set", "--local", "--", "user.name", "Biomappings curation app"])
-        run(["git", "config", "set", "--local", "--", "user.email", email])
+        run(["git", "switch", "-c", head])
+        run(["git", "config", "set", "--local", "--", "user.name", COMMITTER_NAME])
+        run(["git", "config", "set", "--local", "--", "user.email", COMMITTER_EMAIL])
         run(["git", "commit", "--all", "--author", author, "-m", commit_msg])
 
         with BiomappingsApiClient() as client:
             try:
-                run(["git", "push"])
+                run(["git", "push", "--", "origin", head])
                 create_pull_request(
-                    client=client, base=base_branch, head=branch, title=branch, body=commit_msg
+                    client=client, base=BASE_BRANCH, head=head, title=head, body=commit_msg
                 )
             except Exception:
-                delete_branch_if_exists(client=client, head=branch)
+                delete_branch_if_exists(client=client, head=head)
                 raise
 
     return _go_clear_user_state()
