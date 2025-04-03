@@ -688,7 +688,7 @@ def publish_pr():
     user_meta = db.session.get_one(UserMeta, user_id)
     commit_msg = (
         f"Curated {user_meta.total_curated} mapping"
-        f"{'s' if user_meta.total_curated > 1 else ''} ({user_id})",
+        f"{'s' if user_meta.total_curated > 1 else ''} ({user_id})"
     )
 
     true_mappings = []
