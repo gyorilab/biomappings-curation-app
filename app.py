@@ -1,12 +1,14 @@
 """Web curation interface for :mod:`biomappings`."""
 
+import datetime
+import functools
 import operator
 import os
 import shutil
 import subprocess
 import uuid
 from collections import Counter
-from collections.abc import Iterable, Mapping as MappingT
+from collections.abc import Generator, Iterable, Mapping as MappingT
 from copy import deepcopy
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -15,10 +17,21 @@ from typing import Any
 import bioregistry
 import flask
 import flask_bootstrap
+import stamina
 from flask import current_app
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm
-from httpx import Auth, Client, Headers, Timeout, codes
+from httpx import (
+    Auth,
+    Client,
+    Headers,
+    HTTPError,
+    HTTPStatusError,
+    Request,
+    Response,
+    Timeout,
+    codes,
+)
 from pydantic import BaseModel
 from sqlalchemy.orm import DeclarativeBase, Mapped, MappedAsDataclass, mapped_column
 from sqlalchemy.schema import MetaData, PrimaryKeyConstraint
@@ -34,44 +47,55 @@ from biomappings.resources import (
 )
 from biomappings.utils import check_valid_prefix_id, get_curie
 
-BIOMAPPINGS_REPO_DIR = Path("biomappings")
-HTTPX_HTTP2 = True
-HTTPX_TIMEOUT = Timeout(5.0)  # seconds
+LOGIN_REQUIRED_MSG = "Login required"
+NUM_RETRIES = 3
+TIMEOUT = datetime.timedelta(seconds=3)
 
 
 class BearerTokenAuth(Auth):
-    def __init__(self, token):
+    def __init__(self, token: str) -> None:
         self.token = token
 
-    def auth_flow(self, request):
+    def auth_flow(self, request: Request) -> Generator[Request, Response]:
         request.headers["Authorization"] = f"Bearer {self.token}"
         yield request
 
 
-def get_biomappings_repo_client():
-    return Client(
-        auth=BearerTokenAuth(os.environ["GITHUB_TOKEN"]),
-        base_url=os.environ["GITHUB_API_BASE_URL"],
-        event_hooks={"response": [operator.methodcaller("raise_for_status")]},
-        headers=Headers(
-            {
-                "Accept": "application/vnd.github+json",
-                "X-GitHub-Api-Version": "2022-11-28",
-            }
-        ),
-        http2=HTTPX_HTTP2,
-        timeout=HTTPX_TIMEOUT,
+def is_request_or_server_error(exc: Exception) -> bool:
+    if isinstance(exc, HTTPStatusError):
+        return exc.response.is_server_error
+    return isinstance(exc, HTTPError)
+
+
+BiomappingsApiClient = functools.partial(
+    Client,
+    auth=BearerTokenAuth(os.environ["GITHUB_TOKEN"]),
+    base_url=os.environ["GITHUB_API_BASE_URL"],
+    headers=Headers(
+        {"Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"}
+    ),
+    http2=True,
+    timeout=Timeout(TIMEOUT.total_seconds()),
+)
+
+
+@stamina.retry(on=is_request_or_server_error, attempts=NUM_RETRIES)
+def create_pull_request(*, client: Client, base: str, head: str, title: str, body: str) -> None:
+    response = client.post(
+        "/pulls", json={"base": base, "body": body, "head": head, "title": title}
     )
+    response.raise_for_status()
 
 
-def delete_branch_if_exists(client, branch):
-    response = client.delete(f"/git/refs/heads/{branch}")
-    if response.is_error and not (
+@stamina.retry(on=is_request_or_server_error, attempts=NUM_RETRIES)
+def delete_branch_if_exists(*, client: Client, head: str) -> None:
+    response = client.delete(f"/git/refs/heads/{head}")
+    if response.is_success or (
         response.status_code == codes.UNPROCESSABLE_ENTITY
         and response.json()["message"] == "Reference does not exist"
     ):
-        response.raise_for_status()
-    return response
+        return
+    response.raise_for_status()
 
 
 class SQLAlchemyBase(DeclarativeBase, MappedAsDataclass):
@@ -133,16 +157,6 @@ class Mapping(db.Model):  # type: ignore[name-defined]
     )
 
 
-# class TargetId(db.Model):  # type: ignore[name-defined]
-#     __tablename__ = "target_id"
-#
-#     user_id: Mapped[str]
-#     prefix: Mapped[str]
-#     identifier: Mapped[str]
-#
-#     __table_args__ = (PrimaryKeyConstraint("user_id", "prefix", "identifier"),)
-
-
 class State(BaseModel):
     """Contains the state for queries to the curation app."""
 
@@ -159,7 +173,7 @@ class State(BaseModel):
     same_text: bool | None = None
     show_relations: bool = True
     show_lines: bool = False
-    user_id: str
+    user_id: str | None = None
 
     @classmethod
     def from_flask_globals(cls) -> "State":
@@ -178,7 +192,7 @@ class State(BaseModel):
             same_text=_get_bool_arg("same_text"),
             show_relations=_get_bool_arg("show_relations") or current_app.config["SHOW_RELATIONS"],
             show_lines=_get_bool_arg("show_lines") or current_app.config["SHOW_LINES"],
-            user_id=f"orcid:{flask.request.headers['X-Auth-Request-User']}",
+            user_id=_get_user_id(),
         )
 
 
@@ -187,6 +201,12 @@ def _get_bool_arg(name: str, default: bool | None = None) -> bool | None:
     if value is not None:
         return value.lower() in {"true", "t"}
     return default
+
+
+def _get_user_id(request_header: str = "X-Auth-Request-User") -> str | None:
+    if (value := flask.request.headers.get(request_header)) is None:
+        return None
+    return f"orcid:{value}"
 
 
 def url_for_state(endpoint, state: State, **kwargs) -> str:
@@ -202,14 +222,14 @@ def url_for_state(endpoint, state: State, **kwargs) -> str:
     return flask.url_for(endpoint, **vv)
 
 
-def get_app(biomappings_repo_dir: Path) -> flask.Flask:
+def get_app(biomappings_path: Path) -> flask.Flask:
     """Get a curation flask app."""
     app_ = flask.Flask(__name__)
     app_.config["WTF_CSRF_ENABLED"] = False
     app_.config["SECRET_KEY"] = os.urandom(8)
     app_.config["SHOW_RELATIONS"] = True
     app_.config["SHOW_LINES"] = False
-    controller = Controller(biomappings_repo_dir=biomappings_repo_dir)
+    controller = Controller(biomappings_path=biomappings_path)
     app_.config["controller"] = controller
     flask_bootstrap.Bootstrap4(app_)
     app_.register_blueprint(blueprint)
@@ -224,14 +244,14 @@ def get_app(biomappings_repo_dir: Path) -> flask.Flask:
 class Controller:
     """A module for interacting with the predictions and mappings."""
 
-    def __init__(self, *, biomappings_repo_dir: Path):
+    def __init__(self, *, biomappings_path: Path):
         """Instantiate the web controller.
 
-        :param biomappings_repo_dir: path to the Biomappings Git repository
+        :param biomappings_path: path to the Biomappings Git repository
         """
-        self.biomappings_repo_dir = biomappings_repo_dir
+        self.biomappings_path = biomappings_path
         self._predictions = load_predictions(
-            path=biomappings_repo_dir.joinpath("src", "biomappings", "resources", "predictions.tsv")
+            path=biomappings_path.joinpath("src", "biomappings", "resources", "predictions.tsv"),
         )
 
     def predictions_from_state(self, state: State) -> Iterable[tuple[int, MappingT[str, Any]]]:
@@ -248,6 +268,7 @@ class Controller:
             sort=state.sort,
             same_text=state.same_text,
             provenance=state.provenance,
+            user_id=state.user_id,
         )
 
     def predictions(
@@ -264,6 +285,7 @@ class Controller:
         sort: str | None = None,
         same_text: bool | None = None,
         provenance: str | None = None,
+        user_id: str | None = None,
     ) -> Iterable[tuple[int, MappingT[str, Any]]]:
         """Iterate over predictions.
 
@@ -287,6 +309,7 @@ class Controller:
         :param sort: If "desc", sorts in descending confidence order. If "asc", sorts in increasing
             confidence order. Otherwise, do not sort.
         :param provenance: If given, filters to provenance values matching this
+        :param user_id: If given, exclude predictions marked by this authenticated user ID.
         :yields: Pairs of positions and prediction dictionaries
         """
         if same_text is None:
@@ -301,6 +324,7 @@ class Controller:
             sort=sort,
             same_text=same_text,
             provenance=provenance,
+            user_id=user_id,
         )
         if offset is not None:
             try:
@@ -327,6 +351,7 @@ class Controller:
             prefix=state.prefix,
             same_text=state.same_text,
             provenance=state.provenance,
+            user_id=state.user_id,
         )
 
     def count_predictions(
@@ -340,6 +365,7 @@ class Controller:
         sort: str | None = None,
         same_text: bool | None = None,
         provenance: str | None = None,
+        user_id: str | None = None,
     ) -> int:
         """Count the number of predictions to check for the given filters."""
         it = self._help_it_predictions(
@@ -352,6 +378,7 @@ class Controller:
             sort=sort,
             same_text=same_text,
             provenance=provenance,
+            user_id=user_id,
         )
         return sum(1 for _ in it)
 
@@ -366,22 +393,9 @@ class Controller:
         sort: str | None = None,
         same_text: bool | None = None,
         provenance: str | None = None,
+        user_id: str | None = None,
     ):
-        user_id = State.from_flask_globals().user_id
         it: Iterable[tuple[int, MappingT[str, Any]]] = enumerate(self._predictions)
-
-        # target_ids = (
-        #     db.session.query(TargetId.prefix, TargetId.identifier)
-        #     .filter(TargetId.user_id == user_id)
-        #     .all()
-        # )
-        # if target_ids:
-        #     it = (
-        #         (line, p)
-        #         for (line, p) in it
-        #         if (p["source prefix"], p["source identifier"]) in target_ids
-        #         or (p["target prefix"], p["target identifier"]) in target_ids
-        #     )
 
         if query is not None:
             it = self._help_filter(
@@ -434,8 +448,16 @@ class Controller:
                 and prediction["relation"] == "skos:exactMatch"
             )
 
-        marked_lines = {_[0] for _ in db.session.query(Mark.line).filter(Mark.user_id == user_id)}
-        return ((line, prediction) for line, prediction in it if line not in marked_lines)
+        marked = set()
+        if user_id is not None:
+            marked = set(
+                map(
+                    operator.itemgetter(0),
+                    db.session.query(Mark.line).filter(Mark.user_id == user_id),
+                )
+            )
+
+        return ((line, prediction) for line, prediction in it if line not in marked)
 
     @staticmethod
     def _help_filter(query: str, it, elements: set[str]):
@@ -462,18 +484,20 @@ class Controller:
     @property
     def total_predictions(self) -> int:
         """Return the total number of yet unmarked predictions."""
-        user_id = State.from_flask_globals().user_id
-        mark_count = db.session.query(Mark).filter(Mark.user_id == user_id).count()
+        mark_count = 0
+        if (user_id := State.from_flask_globals().user_id) is not None:
+            mark_count = db.session.query(Mark).filter(Mark.user_id == user_id).count()
         return len(self._predictions) - mark_count
 
-    def mark(self, line: int, value: str) -> None:
+    @staticmethod
+    def mark(user_id: str, line: int, value: str) -> None:
         """Mark the given equivalency as correct.
 
+        :param user_id: Authenticated user ID
         :param line: Position of the prediction
         :param value: Value to mark the prediction with
         :raises ValueError: if an invalid value is used
         """
-        user_id = State.from_flask_globals().user_id
         mark_ = db.session.get(Mark, (user_id, line))
         if mark_ is None:
             user_meta = db.session.get(UserMeta, user_id) or UserMeta(user_id=user_id)
@@ -484,8 +508,8 @@ class Controller:
         db.session.add(Mark(user_id=user_id, line=line, value=value))
         db.session.commit()
 
+    @staticmethod
     def add_mapping(
-        self,
         source_prefix: str,
         source_id: str,
         source_name: str,
@@ -540,7 +564,8 @@ class Controller:
 
     def persist(self):
         """Save the current markings to the source files."""
-        user_id = State.from_flask_globals().user_id
+        if (user_id := State.from_flask_globals().user_id) is None:
+            raise TypeError
 
         marks = dict(
             db.session.query(Mark.line, Mark.value)
@@ -583,12 +608,12 @@ class Controller:
         db.session.add_all(mappings)
         db.session.commit()
 
-    def clear_user_state(self, user_id: str):
+    @staticmethod
+    def clear_user_state(user_id: str):
         """Clear all user-specific state."""
         db.session.query(Mark).filter(Mark.user_id == user_id).delete()
         db.session.query(UserMeta).filter(UserMeta.user_id == user_id).delete()
         db.session.query(Mapping).filter(Mapping.source == user_id).delete()
-        # db.session.query(TargetId).filter(TargetId.user_id == user_id).delete()
         db.session.commit()
 
 
@@ -617,9 +642,11 @@ def home():
     form = MappingForm()
     predictions = CONTROLLER.predictions_from_state(state)
     remaining_rows = CONTROLLER.count_predictions_from_state(state)
-    total_curated = (
-        db.session.get(UserMeta, state.user_id) or UserMeta(user_id=state.user_id)
-    ).total_curated
+    total_curated = 0
+    if state.user_id is not None:
+        total_curated = (
+            db.session.get(UserMeta, state.user_id) or UserMeta(user_id=state.user_id)
+        ).total_curated
     return flask.render_template(
         "home.html",
         predictions=predictions,
@@ -656,35 +683,42 @@ def summary():
 @blueprint.route("/add_mapping", methods=["POST"])
 def add_mapping():
     """Add a new mapping manually."""
-    form = MappingForm()
-    if form.is_submitted():
-        state = State.from_flask_globals()
-        CONTROLLER.add_mapping(
-            form.data["source_prefix"],
-            form.data["source_id"],
-            form.data["source_name"],
-            form.data["target_prefix"],
-            form.data["target_id"],
-            form.data["target_name"],
-            state.user_id,
-        )
+    if (user_id := State.from_flask_globals().user_id) is None:
+        flask.flash(LOGIN_REQUIRED_MSG, category="warning")
     else:
-        flask.flash("missing form data", category="warning")
+        form = MappingForm()
+        if form.is_submitted():
+            CONTROLLER.add_mapping(
+                form.data["source_prefix"],
+                form.data["source_id"],
+                form.data["source_name"],
+                form.data["target_prefix"],
+                form.data["target_id"],
+                form.data["target_name"],
+                user_id,
+            )
+        else:
+            flask.flash("missing form data", category="warning")
     return _go_home()
 
 
 @blueprint.route("/clear_user_state")
 def clear_user_state():
     """Clear all user-specific state, then redirect to the home page."""
-    user_id = State.from_flask_globals().user_id
-    CONTROLLER.clear_user_state(user_id)
+    if (user_id := State.from_flask_globals().user_id) is None:
+        flask.flash(LOGIN_REQUIRED_MSG, category="warning")
+    else:
+        CONTROLLER.clear_user_state(user_id)
     return _go_home()
 
 
 @blueprint.route("/publish")
 def publish_pr():
     """Publish a PR, then clear user state and redirect to the home page."""
-    user_id = State.from_flask_globals().user_id
+    if (user_id := State.from_flask_globals().user_id) is None:
+        flask.flash(LOGIN_REQUIRED_MSG, category="warning")
+        return _go_home()
+
     user_meta = db.session.get_one(UserMeta, user_id)
     commit_msg = (
         f"Curated {user_meta.total_curated} mapping"
@@ -728,7 +762,7 @@ def publish_pr():
     with TemporaryDirectory() as _tmp_dir:
         repo_dir = Path(_tmp_dir)
         shutil.copytree(
-            CONTROLLER.biomappings_repo_dir,
+            CONTROLLER.biomappings_path,
             repo_dir,
             dirs_exist_ok=True,
             ignore_dangling_symlinks=True,
@@ -757,51 +791,28 @@ def publish_pr():
         branch = f"{user_id}_{uuid.uuid4()}".replace(":", "_")
         email = f"noreply@{os.environ['HOSTNAME']}"
         author = f"{user_id} <{email}>"
-        subprocess.run(["git", "switch", "-c", branch], check=True, cwd=repo_dir)
-        subprocess.run(
-            ["git", "config", "set", "--local", "--", "push.default", "current"],
+
+        run = functools.partial(
+            subprocess.run,
             check=True,
             cwd=repo_dir,
-        )
-        subprocess.run(
-            ["git", "config", "set", "--local", "--", "user.name", "Biomappings curation app"],
-            check=True,
-            cwd=repo_dir,
-        )
-        subprocess.run(
-            ["git", "config", "set", "--local", "--", "user.email", email], check=True, cwd=repo_dir
-        )
-        subprocess.run(
-            [
-                "git",
-                "commit",
-                "--all",
-                "--author",
-                author,
-                "--no-edit",
-                "--no-post-rewrite",
-                "--no-verify",
-                "-m",
-                commit_msg,
-            ],
-            check=True,
-            cwd=repo_dir,
+            timeout=TIMEOUT.total_seconds(),
         )
 
-        with get_biomappings_repo_client() as client:
+        run(["git", "switch", "-c", branch])
+        run(["git", "config", "set", "--local", "--", "push.default", "current"])
+        run(["git", "config", "set", "--local", "--", "user.name", "Biomappings curation app"])
+        run(["git", "config", "set", "--local", "--", "user.email", email])
+        run(["git", "commit", "--all", "--author", author, "-m", commit_msg])
+
+        with BiomappingsApiClient() as client:
             try:
-                subprocess.run(["git", "push"], check=True, cwd=repo_dir)
-                client.post(
-                    "/pulls",
-                    json={
-                        "base": base_branch,
-                        "body": commit_msg,
-                        "head": branch,
-                        "title": branch,
-                    },
+                run(["git", "push"])
+                create_pull_request(
+                    client=client, base=base_branch, head=branch, title=branch, body=commit_msg
                 )
             except Exception:
-                delete_branch_if_exists(client, branch)
+                delete_branch_if_exists(client=client, head=branch)
                 raise
 
     return _go_clear_user_state()
@@ -830,8 +841,11 @@ def _normalize_mark(value: str) -> str:
 @blueprint.route("/mark/<int:line>/<value>")
 def mark(line: int, value: str):
     """Mark the given line as correct or not."""
-    CONTROLLER.mark(line, _normalize_mark(value))
-    CONTROLLER.persist()
+    if (user_id := State.from_flask_globals().user_id) is None:
+        flask.flash(LOGIN_REQUIRED_MSG, category="warning")
+    else:
+        CONTROLLER.mark(user_id, line, _normalize_mark(value))
+        CONTROLLER.persist()
     return _go_home()
 
 
@@ -845,7 +859,7 @@ def _go_home():
     return flask.redirect(url_for_state(".home", state))
 
 
-app = get_app(biomappings_repo_dir=BIOMAPPINGS_REPO_DIR)
+app = get_app(biomappings_path=Path("biomappings"))
 
 
 if __name__ == "__main__":
