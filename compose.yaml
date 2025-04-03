@@ -84,11 +84,12 @@ services:
       - path: './env/app.env'
     environment:
       GITHUB_TOKEN: '${GITHUB_TOKEN}'
+    expose:
+      - '5000/tcp'
     networks:
       - 'external'
       - 'internal'
     restart: 'unless-stopped'
-    stop_grace_period: '1s'
     volumes:
       - source: './app.py'
         target: '/app/app.py'

@@ -755,12 +755,42 @@ def publish_pr():
 
         base_branch = "master"
         branch = f"{user_id}_{uuid.uuid4()}".replace(":", "_")
+        email = f"noreply@{os.environ['HOSTNAME']}"
+        author = f"{user_id} <{email}>"
         subprocess.run(["git", "switch", "-c", branch], check=True, cwd=repo_dir)
-        subprocess.run(["git", "commit", "--all", "-m", commit_msg], check=True, cwd=repo_dir)
+        subprocess.run(
+            ["git", "config", "set", "--local", "--", "push.default", "current"],
+            check=True,
+            cwd=repo_dir,
+        )
+        subprocess.run(
+            ["git", "config", "set", "--local", "--", "user.name", "Biomappings curation app"],
+            check=True,
+            cwd=repo_dir,
+        )
+        subprocess.run(
+            ["git", "config", "set", "--local", "--", "user.email", email], check=True, cwd=repo_dir
+        )
+        subprocess.run(
+            [
+                "git",
+                "commit",
+                "--all",
+                "--author",
+                author,
+                "--no-edit",
+                "--no-post-rewrite",
+                "--no-verify",
+                "-m",
+                commit_msg,
+            ],
+            check=True,
+            cwd=repo_dir,
+        )
 
         with get_biomappings_repo_client() as client:
             try:
-                subprocess.run(["git", "push", "--", "origin", branch], check=True, cwd=repo_dir)
+                subprocess.run(["git", "push"], check=True, cwd=repo_dir)
                 client.post(
                     "/pulls",
                     json={

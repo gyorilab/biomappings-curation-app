@@ -11,8 +11,4 @@ WORKDIR /app
 COPY ["pyproject.toml", "."]
 COPY ["pixi.lock", "."]
 RUN ["pixi", "install", "--frozen"]
-
-# Configure default behavior.
-COPY ["resources/app/app.entrypoint", "/entrypoint"]
-ENTRYPOINT ["/entrypoint"]
-EXPOSE 5000/tcp
+ENV PATH="/app/.pixi/envs/default/bin:${PATH}"

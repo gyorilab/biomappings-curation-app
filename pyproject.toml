@@ -14,11 +14,12 @@ platforms = [
 ]
 
 [tool.pixi.dependencies]
+git = { version = '>=2.49.0' }
 python = { version = '>=3.13.2,<3.14' }
 
 [tool.pixi.pypi-dependencies]
 biomappings = { version = '>=0.3.7' }
-bioregistry = { version = '>=0.12.7' }
+bioregistry = { version = '>=0.12.8' }
 bootstrap-flask = { version = '>=2.4.2' }
 flask = { version = '>=3.1.0' }
 flask-sqlalchemy = { version = '>=3.1.1' }
@@ -130,7 +131,7 @@ _update-keys = { cmd = ['sops', 'updatekeys', '--yes', '--', 'env/secret.env.sop
 
 [tool.pixi.feature.secrets.tasks._clone-biomappings-repo]
 env = { OWNER = 'manselmi', REPOSITORY = 'https://github.com/$OWNER/biomappings.git' }
-cmd = '''sops exec-env --same-process -- env/secret.env.sops.env 'git clone --config=credential.useHttpPath=true --config="credential.${REPOSITORY}.helper"='"'"'!f() { [[ "${1}" == "get" ]] && builtin printf -- "%s\n" authtype=basic "credential=$(builtin printf -- "%s" "oauth2:${GITHUB_TOKEN}" | base64)" ephemeral=true; }; f'"'"' --depth=1 --origin="${OWNER}" -- "${REPOSITORY}" resources/biomappings';'''
+cmd = '''sops exec-env --same-process -- env/secret.env.sops.env 'git clone --config=credential.useHttpPath=true --config="credential.${REPOSITORY}.helper"='"'"'!f() { test "${1}" = "get" && printf "%s\n" authtype=basic "credential=$(printf "%s" "oauth2:${GITHUB_TOKEN}" | base64 -w 0)" ephemeral=true; }; f'"'"' --depth=1 --origin="${OWNER}" -- "${REPOSITORY}" resources/biomappings';'''
 
 
 [tool.mypy]
@@ -185,6 +186,7 @@ ignore = [
   'ISC002',   # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
   'PLR0912',
   'PLR0913',
+  'PLR0915',
   'Q000',     # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
   'Q001',     # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
   'Q002',     # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
