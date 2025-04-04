@@ -42,7 +42,7 @@ secrets = { features = ['secrets'] }
 mypy = { version = '>=1.15.0', extras = ['faster-cache'] }
 pre-commit = { version = '>=4.2.0' }
 pre-commit-hooks = { version = '>=5.0.0' }
-ruff = { version = '>=0.11.3' }
+ruff = { version = '>=0.11.4' }
 types-wtforms = { version = '>=3.2.1.20250401' }
 
 [tool.pixi.feature.lint.tasks]
@@ -117,7 +117,8 @@ down = { cmd = [
   'docker compose down',
 ] }
 edit-secrets = { cmd = ['sops', 'edit', '--', 'env/secret.env.sops.env'] }
-refresh-keys = { depends-on = ['_updatekeys', '_rotate'] }
+refresh-keys = { depends-on = ['update-keys', 'rotate-keys'] }
+rotate-keys = { cmd = ['sops', 'rotate', '--in-place', '--', 'env/secret.env.sops.env'] }
 up = { cmd = [
   'sops',
   'exec-env',
@@ -126,9 +127,8 @@ up = { cmd = [
   'env/secret.env.sops.env',
   'docker compose up',
 ] }
+update-keys = { cmd = ['sops', 'updatekeys', '--yes', '--', 'env/secret.env.sops.env'] }
 _rm-biomappings-repo = { cmd = ['rm', '-fr', '--', 'resources/biomappings'] }
-_rotate = { cmd = ['sops', 'rotate', '--in-place', '--', 'env/secret.env.sops.env'] }
-_update-keys = { cmd = ['sops', 'updatekeys', '--yes', '--', 'env/secret.env.sops.env'] }
 
 [tool.pixi.feature.secrets.tasks._clone-biomappings-repo]
 env = { REPOSITORY = 'https://github.com/manselmi/biomappings.git' }
