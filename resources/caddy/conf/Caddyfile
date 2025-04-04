@@ -39,9 +39,12 @@
       copy_headers X-Auth-Request-Email X-Auth-Request-Groups X-Auth-Request-Preferred-Username X-Auth-Request-User
 
       # If oauth2-proxy returns a 401 status, redirect the client to the sign-in page.
-      @error status 401
-      handle_response @error {
-        redir * /oauth2/sign_in?rd={scheme}://{host}{uri}
+      @unauthorized status 401
+      handle_response @unauthorized {
+        @sign_in_required not path /summary /
+        handle @sign_in_required {
+          redir * /oauth2/sign_in?rd={scheme}://{host}{uri}
+        }
       }
     }
 

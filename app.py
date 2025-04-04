@@ -237,7 +237,9 @@ def get_app(biomappings_path: Path) -> flask.Flask:
     app_.config["controller"] = controller
     flask_bootstrap.Bootstrap4(app_)
     app_.register_blueprint(blueprint)
-    app_.jinja_env.globals.update(controller=controller, url_for_state=url_for_state)
+    app_.jinja_env.globals.update(
+        controller=controller, getenv=os.getenv, url_for_state=url_for_state
+    )
     app_.config["SQLALCHEMY_DATABASE_URI"] = os.environ["SQLALCHEMY_DATABASE_URI"]
     db.init_app(app_)
     with app_.app_context():
@@ -489,7 +491,7 @@ class Controller:
     def total_predictions(self) -> int:
         """Return the total number of yet unmarked predictions."""
         mark_count = 0
-        if (user_id := State.from_flask_globals().user_id) is not None:
+        if (user_id := self.user_id) is not None:
             mark_count = db.session.query(Mark).filter(Mark.user_id == user_id).count()
         return len(self._predictions) - mark_count
 
@@ -566,11 +568,8 @@ class Controller:
 
         db.session.commit()
 
-    def persist(self):
+    def persist(self, user_id):
         """Save the current markings to the source files."""
-        if (user_id := State.from_flask_globals().user_id) is None:
-            raise TypeError
-
         marks = dict(
             db.session.query(Mark.line, Mark.value)
             .filter(Mark.user_id == user_id)
@@ -661,6 +660,14 @@ class Controller:
             (prediction for line, prediction in enumerate(self._predictions) if line not in marked),
         )
 
+    @property
+    def user_id(self) -> str | None:
+        return State.from_flask_globals().user_id
+
+    @property
+    def logged_in(self) -> bool:
+        return self.user_id is not None
+
 
 CONTROLLER: Controller = LocalProxy(lambda: current_app.config["controller"])  # type: ignore[assignment]
 
@@ -688,9 +695,9 @@ def home():
     predictions = CONTROLLER.predictions_from_state(state)
     remaining_rows = CONTROLLER.count_predictions_from_state(state)
     total_curated = 0
-    if state.user_id is not None:
+    if (user_id := CONTROLLER.user_id) is not None:
         total_curated = (
-            db.session.get(UserMeta, state.user_id) or UserMeta(user_id=state.user_id)
+            db.session.get(UserMeta, user_id) or UserMeta(user_id=user_id)
         ).total_curated
     return flask.render_template(
         "home.html",
@@ -728,7 +735,7 @@ def summary():
 @blueprint.route("/add_mapping", methods=["POST"])
 def add_mapping():
     """Add a new mapping manually."""
-    if (user_id := State.from_flask_globals().user_id) is None:
+    if (user_id := CONTROLLER.user_id) is None:
         flask.flash(LOGIN_REQUIRED_MSG, category="warning")
     else:
         form = MappingForm()
@@ -750,7 +757,7 @@ def add_mapping():
 @blueprint.route("/clear_user_state")
 def clear_user_state():
     """Clear all user-specific state, then redirect to the home page."""
-    if (user_id := State.from_flask_globals().user_id) is None:
+    if (user_id := CONTROLLER.user_id) is None:
         flask.flash(LOGIN_REQUIRED_MSG, category="warning")
     else:
         CONTROLLER.clear_user_state(user_id)
@@ -760,7 +767,7 @@ def clear_user_state():
 @blueprint.route("/publish")
 def publish_pr():
     """Publish a PR, then clear user state and redirect to the home page."""
-    if (user_id := State.from_flask_globals().user_id) is None:
+    if (user_id := CONTROLLER.user_id) is None:
         flask.flash(LOGIN_REQUIRED_MSG, category="warning")
         return _go_home()
 
@@ -842,11 +849,11 @@ def _normalize_mark(value: str) -> str:
 @blueprint.route("/mark/<int:line>/<value>")
 def mark(line: int, value: str):
     """Mark the given line as correct or not."""
-    if (user_id := State.from_flask_globals().user_id) is None:
+    if (user_id := CONTROLLER.user_id) is None:
         flask.flash(LOGIN_REQUIRED_MSG, category="warning")
     else:
         CONTROLLER.mark(user_id, line, _normalize_mark(value))
-        CONTROLLER.persist()
+        CONTROLLER.persist(user_id)
     return _go_home()
 
 

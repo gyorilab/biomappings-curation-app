@@ -21,6 +21,17 @@
         <div class="row">
             <div class="card">
                 <h5 class="card-header text-center">
+                    {% if controller.logged_in %}
+                        <a class="btn btn-primary btn-sm" style="float: left;"
+                           href="https://{{ getenv("HOSTNAME") }}/oauth2/sign_out">
+                            Sign out
+                        </a>
+                    {% else %}
+                        <a class="btn btn-primary btn-sm" style="float: left;"
+                           href="https://{{ getenv("HOSTNAME") }}/oauth2/sign_in?rd=https://{{ getenv("HOSTNAME") }}{{ url_for_state(".home", state=state) }}">
+                            Sign in with ORCID
+                        </a>
+                    {% endif %}
                     <a class="btn btn-primary btn-sm" style="float: right;"
                        href="{{ url_for_state(".summary", state=state) }}">
                         Summarize
