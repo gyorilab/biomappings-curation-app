@@ -6,6 +6,7 @@ import operator
 import os
 import shutil
 import subprocess
+import urllib.parse
 import uuid
 from collections import Counter
 from collections.abc import Generator, Iterable, Mapping as MappingT
@@ -51,8 +52,12 @@ AUTHOR_EMAIL = os.environ["COMMITTER_EMAIL"]
 BASE_BRANCH = os.environ["BASE_BRANCH"]
 COMMITTER_EMAIL = os.environ["COMMITTER_EMAIL"]
 COMMITTER_NAME = os.environ["COMMITTER_NAME"]
+GITHUB_API_BASE_URL = os.environ["GITHUB_API_BASE_URL"]
+GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
+HOSTNAME = os.environ["HOSTNAME"]
 LOGIN_REQUIRED_MSG = "Login required"
 NUM_RETRIES = 3
+SQLALCHEMY_DATABASE_URI = os.environ["SQLALCHEMY_DATABASE_URI"]
 TIMEOUT = datetime.timedelta(seconds=3)
 
 
@@ -73,8 +78,8 @@ def is_request_or_server_error(exc: Exception) -> bool:
 
 BiomappingsApiClient = functools.partial(
     Client,
-    auth=BearerTokenAuth(os.environ["GITHUB_TOKEN"]),
-    base_url=os.environ["GITHUB_API_BASE_URL"],
+    auth=BearerTokenAuth(GITHUB_TOKEN),
+    base_url=GITHUB_API_BASE_URL,
     headers=Headers(
         {"Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"}
     ),
@@ -177,7 +182,6 @@ class State(BaseModel):
     same_text: bool | None = None
     show_relations: bool = True
     show_lines: bool = False
-    user_id: str | None = None
 
     @classmethod
     def from_flask_globals(cls) -> "State":
@@ -196,7 +200,6 @@ class State(BaseModel):
             same_text=_get_bool_arg("same_text"),
             show_relations=_get_bool_arg("show_relations") or current_app.config["SHOW_RELATIONS"],
             show_lines=_get_bool_arg("show_lines") or current_app.config["SHOW_LINES"],
-            user_id=_get_user_id(),
         )
 
 
@@ -207,21 +210,9 @@ def _get_bool_arg(name: str, default: bool | None = None) -> bool | None:
     return default
 
 
-def _get_user_id(request_header: str = "X-Auth-Request-User") -> str | None:
-    if (value := flask.request.headers.get(request_header)) is None:
-        return None
-    return f"orcid:{value}"
-
-
 def url_for_state(endpoint, state: State, **kwargs) -> str:
     """Get the URL for an endpoint based on the state class."""
-    vv = state.dict(
-        exclude_none=True,
-        exclude_defaults=True,
-        exclude={
-            "user_id",
-        },
-    )
+    vv = state.dict(exclude_none=True, exclude_defaults=True)
     vv.update(kwargs)  # make sure stuff explicitly set overrides state
     return flask.url_for(endpoint, **vv)
 
@@ -237,10 +228,11 @@ def get_app(biomappings_path: Path) -> flask.Flask:
     app_.config["controller"] = controller
     flask_bootstrap.Bootstrap4(app_)
     app_.register_blueprint(blueprint)
+    app_.jinja_env.filters["quote_plus"] = urllib.parse.quote_plus
     app_.jinja_env.globals.update(
-        controller=controller, getenv=os.getenv, url_for_state=url_for_state
+        controller=controller, hostname=HOSTNAME, url_for_state=url_for_state
     )
-    app_.config["SQLALCHEMY_DATABASE_URI"] = os.environ["SQLALCHEMY_DATABASE_URI"]
+    app_.config["SQLALCHEMY_DATABASE_URI"] = SQLALCHEMY_DATABASE_URI
     db.init_app(app_)
     with app_.app_context():
         db.create_all()
@@ -274,7 +266,7 @@ class Controller:
             sort=state.sort,
             same_text=state.same_text,
             provenance=state.provenance,
-            user_id=state.user_id,
+            user_id=self.user_id,
         )
 
     def predictions(
@@ -357,7 +349,7 @@ class Controller:
             prefix=state.prefix,
             same_text=state.same_text,
             provenance=state.provenance,
-            user_id=state.user_id,
+            user_id=self.user_id,
         )
 
     def count_predictions(
@@ -662,7 +654,9 @@ class Controller:
 
     @property
     def user_id(self) -> str | None:
-        return State.from_flask_globals().user_id
+        if (value := flask.request.headers.get("X-Auth-Request-User")) is None:
+            return None
+        return f"orcid:{value}"
 
     @property
     def logged_in(self) -> bool:
