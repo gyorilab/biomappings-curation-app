@@ -37,6 +37,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import DeclarativeBase, Mapped, MappedAsDataclass, mapped_column
 from sqlalchemy.schema import MetaData, PrimaryKeyConstraint
 from werkzeug.local import LocalProxy
+from werkzeug.middleware.proxy_fix import ProxyFix
 from wtforms import StringField, SubmitField
 
 from biomappings.resources import (
@@ -54,7 +55,6 @@ COMMITTER_EMAIL = os.environ["COMMITTER_EMAIL"]
 COMMITTER_NAME = os.environ["COMMITTER_NAME"]
 GITHUB_API_BASE_URL = os.environ["GITHUB_API_BASE_URL"]
 GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
-HOSTNAME = os.environ["HOSTNAME"]
 LOGIN_REQUIRED_MSG = "Login required"
 NUM_RETRIES = 3
 SQLALCHEMY_DATABASE_URI = os.environ["SQLALCHEMY_DATABASE_URI"]
@@ -220,19 +220,18 @@ def url_for_state(endpoint, state: State, **kwargs) -> str:
 def get_app(biomappings_path: Path) -> flask.Flask:
     """Get a curation flask app."""
     app_ = flask.Flask(__name__)
-    app_.config["WTF_CSRF_ENABLED"] = False
     app_.config["SECRET_KEY"] = os.urandom(8)
-    app_.config["SHOW_RELATIONS"] = True
     app_.config["SHOW_LINES"] = False
+    app_.config["SHOW_RELATIONS"] = True
+    app_.config["SQLALCHEMY_DATABASE_URI"] = SQLALCHEMY_DATABASE_URI
+    app_.config["WTF_CSRF_ENABLED"] = False
     controller = Controller(biomappings_path=biomappings_path)
     app_.config["controller"] = controller
     flask_bootstrap.Bootstrap4(app_)
     app_.register_blueprint(blueprint)
     app_.jinja_env.filters["quote_plus"] = urllib.parse.quote_plus
-    app_.jinja_env.globals.update(
-        controller=controller, hostname=HOSTNAME, url_for_state=url_for_state
-    )
-    app_.config["SQLALCHEMY_DATABASE_URI"] = SQLALCHEMY_DATABASE_URI
+    app_.jinja_env.globals.update(controller=controller, url_for_state=url_for_state)
+    app_.wsgi_app = ProxyFix(app_.wsgi_app, x_for=1, x_proto=1, x_host=1)  # type: ignore[method-assign]
     db.init_app(app_)
     with app_.app_context():
         db.create_all()
