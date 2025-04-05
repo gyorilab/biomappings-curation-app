@@ -23,12 +23,12 @@
                 <h5 class="card-header text-center">
                     {% if controller.logged_in %}
                         <a class="btn btn-primary btn-sm" style="float: left;"
-                           href="https://{{ hostname }}/oauth2/sign_out?rd={{ ("https://" ~ hostname ~ url_for_state(".home", state=state)) | quote_plus }}">
+                           href="/oauth2/sign_out?rd={{ ("https://" ~ hostname ~ url_for_state(".home", state=state)) | quote_plus }}">
                             Sign out
                         </a>
                     {% else %}
                         <a class="btn btn-primary btn-sm" style="float: left;"
-                           href="https://{{ hostname }}/oauth2/sign_in?rd={{ ("https://" ~ hostname ~ url_for_state(".home", state=state)) | quote_plus }}">
+                           href="/oauth2/sign_in?rd={{ ("https://" ~ hostname ~ url_for_state(".home", state=state)) | quote_plus }}">
                             Sign in with ORCID
                         </a>
                     {% endif %}
