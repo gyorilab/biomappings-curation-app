@@ -233,8 +233,9 @@ def get_app(biomappings_path: Path) -> flask.Flask:
     app_.jinja_env.globals.update(controller=controller, url_for_state=url_for_state)
     app_.wsgi_app = ProxyFix(app_.wsgi_app, x_for=1, x_proto=1, x_host=1)  # type: ignore[method-assign]
     db.init_app(app_)
-    with app_.app_context():
-        db.create_all()
+    if int(os.environ["APP_WORKER_ID"]) == 0:
+        with app_.app_context():
+            db.create_all()
     return app_
 
 

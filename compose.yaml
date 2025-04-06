@@ -73,7 +73,7 @@ services:
       - 'gunicorn'
       - '--bind=0.0.0.0:5000'
       - '--worker-class=gthread'
-      - '--workers=1'
+      - '--workers=4'
       - '--'
       - 'app:app'
     depends_on:
@@ -93,6 +93,10 @@ services:
     volumes:
       - source: './app.py'
         target: '/app/app.py'
+        type: 'bind'
+        read_only: true
+      - source: './resources/app/gunicorn.conf.py'
+        target: '/app/gunicorn.conf.py'
         type: 'bind'
         read_only: true
       - source: './resources/app/templates'

@@ -183,6 +183,7 @@ ignore = [
   'E114',     # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
   'E117',     # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
   'ERA',      # do not remove commented-out code
+  'INP001',
   'ISC001',   # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
   'ISC002',   # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
   'PLR0912',
