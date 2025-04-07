@@ -48,7 +48,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/78/b6/6307fbef88d9b5ee7421e68d78a9f162e0da4900bc5f5793f6d3d0e34fb8/annotated_types-0.7.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/a1/ee/48ca1a7c89ffec8b6a0c5d02b89c305671d5ffd8d3c94acf8b8c408575bb/anyio-4.9.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/1d/6c/afbd770137513b1ca6a36e8d97bf05df773bf2440e81385f18aa16a0b3b2/biomappings-0.3.7-py3-none-any.whl
-      - pypi: https://files.pythonhosted.org/packages/ea/26/dc0d58ad9da5efb282a10c14816907fcbd2c3b8430e0147636c9c6b3776f/bioregistry-0.12.8-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/15/eb/302fdbc6ec8e5463358e2b6165dbfa18310931c7ec700f3965fa38df846d/bioregistry-0.12.10-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/10/cb/f2ad4230dc2eb1a74edf38f1a38b9b52277f75bef262d8908e60d957e13c/blinker-1.9.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/f3/a8/6c3e7c49a726d27b82187022c88bf2158b0b577d3fe4f34d0bb2497d62ef/bootstrap_flask-2.4.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/38/fc/bce832fd4fd99766c04d1ee0eead6b0ec6486fb100ae5e74c1d91292b982/certifi-2025.1.31-py3-none-any.whl
@@ -135,7 +135,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/78/b6/6307fbef88d9b5ee7421e68d78a9f162e0da4900bc5f5793f6d3d0e34fb8/annotated_types-0.7.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/a1/ee/48ca1a7c89ffec8b6a0c5d02b89c305671d5ffd8d3c94acf8b8c408575bb/anyio-4.9.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/1d/6c/afbd770137513b1ca6a36e8d97bf05df773bf2440e81385f18aa16a0b3b2/biomappings-0.3.7-py3-none-any.whl
-      - pypi: https://files.pythonhosted.org/packages/ea/26/dc0d58ad9da5efb282a10c14816907fcbd2c3b8430e0147636c9c6b3776f/bioregistry-0.12.8-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/15/eb/302fdbc6ec8e5463358e2b6165dbfa18310931c7ec700f3965fa38df846d/bioregistry-0.12.10-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/10/cb/f2ad4230dc2eb1a74edf38f1a38b9b52277f75bef262d8908e60d957e13c/blinker-1.9.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/f3/a8/6c3e7c49a726d27b82187022c88bf2158b0b577d3fe4f34d0bb2497d62ef/bootstrap_flask-2.4.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/38/fc/bce832fd4fd99766c04d1ee0eead6b0ec6486fb100ae5e74c1d91292b982/certifi-2025.1.31-py3-none-any.whl
@@ -214,7 +214,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/78/b6/6307fbef88d9b5ee7421e68d78a9f162e0da4900bc5f5793f6d3d0e34fb8/annotated_types-0.7.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/a1/ee/48ca1a7c89ffec8b6a0c5d02b89c305671d5ffd8d3c94acf8b8c408575bb/anyio-4.9.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/1d/6c/afbd770137513b1ca6a36e8d97bf05df773bf2440e81385f18aa16a0b3b2/biomappings-0.3.7-py3-none-any.whl
-      - pypi: https://files.pythonhosted.org/packages/ea/26/dc0d58ad9da5efb282a10c14816907fcbd2c3b8430e0147636c9c6b3776f/bioregistry-0.12.8-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/15/eb/302fdbc6ec8e5463358e2b6165dbfa18310931c7ec700f3965fa38df846d/bioregistry-0.12.10-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/10/cb/f2ad4230dc2eb1a74edf38f1a38b9b52277f75bef262d8908e60d957e13c/blinker-1.9.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/f3/a8/6c3e7c49a726d27b82187022c88bf2158b0b577d3fe4f34d0bb2497d62ef/bootstrap_flask-2.4.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/38/fc/bce832fd4fd99766c04d1ee0eead6b0ec6486fb100ae5e74c1d91292b982/certifi-2025.1.31-py3-none-any.whl
@@ -307,7 +307,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/78/b6/6307fbef88d9b5ee7421e68d78a9f162e0da4900bc5f5793f6d3d0e34fb8/annotated_types-0.7.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/a1/ee/48ca1a7c89ffec8b6a0c5d02b89c305671d5ffd8d3c94acf8b8c408575bb/anyio-4.9.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/1d/6c/afbd770137513b1ca6a36e8d97bf05df773bf2440e81385f18aa16a0b3b2/biomappings-0.3.7-py3-none-any.whl
-      - pypi: https://files.pythonhosted.org/packages/ea/26/dc0d58ad9da5efb282a10c14816907fcbd2c3b8430e0147636c9c6b3776f/bioregistry-0.12.8-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/15/eb/302fdbc6ec8e5463358e2b6165dbfa18310931c7ec700f3965fa38df846d/bioregistry-0.12.10-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/10/cb/f2ad4230dc2eb1a74edf38f1a38b9b52277f75bef262d8908e60d957e13c/blinker-1.9.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/f3/a8/6c3e7c49a726d27b82187022c88bf2158b0b577d3fe4f34d0bb2497d62ef/bootstrap_flask-2.4.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/38/fc/bce832fd4fd99766c04d1ee0eead6b0ec6486fb100ae5e74c1d91292b982/certifi-2025.1.31-py3-none-any.whl
@@ -409,7 +409,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/78/b6/6307fbef88d9b5ee7421e68d78a9f162e0da4900bc5f5793f6d3d0e34fb8/annotated_types-0.7.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/a1/ee/48ca1a7c89ffec8b6a0c5d02b89c305671d5ffd8d3c94acf8b8c408575bb/anyio-4.9.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/1d/6c/afbd770137513b1ca6a36e8d97bf05df773bf2440e81385f18aa16a0b3b2/biomappings-0.3.7-py3-none-any.whl
-      - pypi: https://files.pythonhosted.org/packages/ea/26/dc0d58ad9da5efb282a10c14816907fcbd2c3b8430e0147636c9c6b3776f/bioregistry-0.12.8-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/15/eb/302fdbc6ec8e5463358e2b6165dbfa18310931c7ec700f3965fa38df846d/bioregistry-0.12.10-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/10/cb/f2ad4230dc2eb1a74edf38f1a38b9b52277f75bef262d8908e60d957e13c/blinker-1.9.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/f3/a8/6c3e7c49a726d27b82187022c88bf2158b0b577d3fe4f34d0bb2497d62ef/bootstrap_flask-2.4.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/38/fc/bce832fd4fd99766c04d1ee0eead6b0ec6486fb100ae5e74c1d91292b982/certifi-2025.1.31-py3-none-any.whl
@@ -503,7 +503,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/78/b6/6307fbef88d9b5ee7421e68d78a9f162e0da4900bc5f5793f6d3d0e34fb8/annotated_types-0.7.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/a1/ee/48ca1a7c89ffec8b6a0c5d02b89c305671d5ffd8d3c94acf8b8c408575bb/anyio-4.9.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/1d/6c/afbd770137513b1ca6a36e8d97bf05df773bf2440e81385f18aa16a0b3b2/biomappings-0.3.7-py3-none-any.whl
-      - pypi: https://files.pythonhosted.org/packages/ea/26/dc0d58ad9da5efb282a10c14816907fcbd2c3b8430e0147636c9c6b3776f/bioregistry-0.12.8-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/15/eb/302fdbc6ec8e5463358e2b6165dbfa18310931c7ec700f3965fa38df846d/bioregistry-0.12.10-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/10/cb/f2ad4230dc2eb1a74edf38f1a38b9b52277f75bef262d8908e60d957e13c/blinker-1.9.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/f3/a8/6c3e7c49a726d27b82187022c88bf2158b0b577d3fe4f34d0bb2497d62ef/bootstrap_flask-2.4.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/38/fc/bce832fd4fd99766c04d1ee0eead6b0ec6486fb100ae5e74c1d91292b982/certifi-2025.1.31-py3-none-any.whl
@@ -612,7 +612,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/78/b6/6307fbef88d9b5ee7421e68d78a9f162e0da4900bc5f5793f6d3d0e34fb8/annotated_types-0.7.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/a1/ee/48ca1a7c89ffec8b6a0c5d02b89c305671d5ffd8d3c94acf8b8c408575bb/anyio-4.9.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/1d/6c/afbd770137513b1ca6a36e8d97bf05df773bf2440e81385f18aa16a0b3b2/biomappings-0.3.7-py3-none-any.whl
-      - pypi: https://files.pythonhosted.org/packages/ea/26/dc0d58ad9da5efb282a10c14816907fcbd2c3b8430e0147636c9c6b3776f/bioregistry-0.12.8-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/15/eb/302fdbc6ec8e5463358e2b6165dbfa18310931c7ec700f3965fa38df846d/bioregistry-0.12.10-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/10/cb/f2ad4230dc2eb1a74edf38f1a38b9b52277f75bef262d8908e60d957e13c/blinker-1.9.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/f3/a8/6c3e7c49a726d27b82187022c88bf2158b0b577d3fe4f34d0bb2497d62ef/bootstrap_flask-2.4.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/38/fc/bce832fd4fd99766c04d1ee0eead6b0ec6486fb100ae5e74c1d91292b982/certifi-2025.1.31-py3-none-any.whl
@@ -700,7 +700,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/78/b6/6307fbef88d9b5ee7421e68d78a9f162e0da4900bc5f5793f6d3d0e34fb8/annotated_types-0.7.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/a1/ee/48ca1a7c89ffec8b6a0c5d02b89c305671d5ffd8d3c94acf8b8c408575bb/anyio-4.9.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/1d/6c/afbd770137513b1ca6a36e8d97bf05df773bf2440e81385f18aa16a0b3b2/biomappings-0.3.7-py3-none-any.whl
-      - pypi: https://files.pythonhosted.org/packages/ea/26/dc0d58ad9da5efb282a10c14816907fcbd2c3b8430e0147636c9c6b3776f/bioregistry-0.12.8-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/15/eb/302fdbc6ec8e5463358e2b6165dbfa18310931c7ec700f3965fa38df846d/bioregistry-0.12.10-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/10/cb/f2ad4230dc2eb1a74edf38f1a38b9b52277f75bef262d8908e60d957e13c/blinker-1.9.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/f3/a8/6c3e7c49a726d27b82187022c88bf2158b0b577d3fe4f34d0bb2497d62ef/bootstrap_flask-2.4.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/38/fc/bce832fd4fd99766c04d1ee0eead6b0ec6486fb100ae5e74c1d91292b982/certifi-2025.1.31-py3-none-any.whl
@@ -780,7 +780,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/78/b6/6307fbef88d9b5ee7421e68d78a9f162e0da4900bc5f5793f6d3d0e34fb8/annotated_types-0.7.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/a1/ee/48ca1a7c89ffec8b6a0c5d02b89c305671d5ffd8d3c94acf8b8c408575bb/anyio-4.9.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/1d/6c/afbd770137513b1ca6a36e8d97bf05df773bf2440e81385f18aa16a0b3b2/biomappings-0.3.7-py3-none-any.whl
-      - pypi: https://files.pythonhosted.org/packages/ea/26/dc0d58ad9da5efb282a10c14816907fcbd2c3b8430e0147636c9c6b3776f/bioregistry-0.12.8-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/15/eb/302fdbc6ec8e5463358e2b6165dbfa18310931c7ec700f3965fa38df846d/bioregistry-0.12.10-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/10/cb/f2ad4230dc2eb1a74edf38f1a38b9b52277f75bef262d8908e60d957e13c/blinker-1.9.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/f3/a8/6c3e7c49a726d27b82187022c88bf2158b0b577d3fe4f34d0bb2497d62ef/bootstrap_flask-2.4.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/38/fc/bce832fd4fd99766c04d1ee0eead6b0ec6486fb100ae5e74c1d91292b982/certifi-2025.1.31-py3-none-any.whl
@@ -922,10 +922,10 @@ packages:
   - bootstrap-flask ; extra == 'web'
   - flask-wtf ; extra == 'web'
   requires_python: '>=3.8'
-- pypi: https://files.pythonhosted.org/packages/ea/26/dc0d58ad9da5efb282a10c14816907fcbd2c3b8430e0147636c9c6b3776f/bioregistry-0.12.8-py3-none-any.whl
+- pypi: https://files.pythonhosted.org/packages/15/eb/302fdbc6ec8e5463358e2b6165dbfa18310931c7ec700f3965fa38df846d/bioregistry-0.12.10-py3-none-any.whl
   name: bioregistry
-  version: 0.12.8
-  sha256: dbd3c4ee8afe5e9c08710a7fa1991943f48dde7a0ad1551329a5cba1222eff2f
+  version: 0.12.10
+  sha256: c70a5f788cb17787d2c6a19cf2df41c63fc7448039f451f56bbad10198ee7816
   requires_dist:
   - requests
   - tqdm
@@ -971,11 +971,11 @@ packages:
   - rdflib ; extra == 'web'
   - rdflib-jsonld ; extra == 'web'
   - rdflib-endpoint>=0.5.3 ; extra == 'web'
-  - flask<2.2.4 ; extra == 'web'
-  - werkzeug<2.3.0 ; extra == 'web'
+  - flask>=3.0.0 ; extra == 'web'
+  - werkzeug>=3.0.0 ; extra == 'web'
   - fastapi ; extra == 'web'
   - uvicorn ; extra == 'web'
-  - bootstrap-flask<=2.0.0 ; extra == 'web'
+  - bootstrap-flask ; extra == 'web'
   - markdown ; extra == 'web'
   - curies[fastapi] ; extra == 'web'
   - a2wsgi ; extra == 'web'
