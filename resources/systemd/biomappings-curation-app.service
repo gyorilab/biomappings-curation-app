@@ -1,0 +1,16 @@
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+ExecStart=/home/ubuntu/.local/bin/pixi run up
+ExecStop=/home/ubuntu/.local/bin/pixi run down
+Group=ubuntu
+Restart=on-failure
+User=ubuntu
+WorkingDirectory=/data/biomappings-curation-app
+
+[Unit]
+After=network-online.target
+Description=Biomappings curation app
+Documentation=https://github.com/gyorilab/biomappings-curation-app
+Wants=network-online.target
