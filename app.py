@@ -56,6 +56,7 @@ COMMITTER_NAME = os.environ["COMMITTER_NAME"]
 GITHUB_API_BASE_URL = os.environ["GITHUB_API_BASE_URL"]
 GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
 LOGIN_REQUIRED_MSG = "Login required"
+NUM_PROXIES = int(os.environ["NUM_PROXIES"])
 NUM_RETRIES = 3
 SQLALCHEMY_DATABASE_URI = os.environ["SQLALCHEMY_DATABASE_URI"]
 TIMEOUT = datetime.timedelta(seconds=3)
@@ -231,7 +232,12 @@ def get_app(biomappings_path: Path) -> flask.Flask:
     app_.register_blueprint(blueprint)
     app_.jinja_env.filters["quote_plus"] = urllib.parse.quote_plus
     app_.jinja_env.globals.update(controller=controller, url_for_state=url_for_state)
-    app_.wsgi_app = ProxyFix(app_.wsgi_app, x_for=1, x_proto=1, x_host=1)  # type: ignore[method-assign]
+    app_.wsgi_app = ProxyFix(  # type: ignore[method-assign]
+        app_.wsgi_app,
+        x_for=NUM_PROXIES,
+        x_proto=NUM_PROXIES,
+        x_host=NUM_PROXIES,
+    )
     db.init_app(app_)
     if int(os.environ["APP_WORKER_ID"]) == 0:
         with app_.app_context():

@@ -3,10 +3,10 @@
 
 # https://caddyserver.com/docs/caddyfile/options
 {
-  # servers {
-  #   trusted_proxies static private_ranges
-  #   trusted_proxies_strict
-  # }
+  servers {
+    trusted_proxies static 172.31.0.0/16
+    trusted_proxies_strict
+  }
 }
 
 {$HOSTNAME} {

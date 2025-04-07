@@ -20,9 +20,15 @@ services:
     networks:
       - 'external'
     ports:
-      - mode: 'host'
+      - app_protocol: 'https'
+        mode: 'host'
         protocol: 'tcp'
-        published: 443
+        published: '8443'
+        target: 443
+      - app_protocol: 'https'
+        mode: 'host'
+        protocol: 'udp'
+        published: '8443'
         target: 443
     restart: 'unless-stopped'
     volumes:
