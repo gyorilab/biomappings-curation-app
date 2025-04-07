@@ -113,6 +113,7 @@ deploy = { depends-on = [
   '_remote-rm-repo',
   '_remote-copy-repo',
   '_remote-clone-biomappings-repo',
+  '_remote-docker-image-rm-app',
   '_remote-rm-volume-postgres',
   '_remote-copy-systemd-app',
   '_remote-systemctl-daemon-reload',
@@ -152,6 +153,12 @@ _remote-copy-systemd-app = { cmd = [
   '--',
   'biomappings-curation-app',
   'sudo -- cp -- /data/biomappings-curation-app/resources/systemd/biomappings-curation-app.service /etc/systemd/system',
+] }
+_remote-docker-image-rm-app = { cmd = [
+  'ssh',
+  '--',
+  'biomappings-curation-app',
+  'docker image rm -f -- biomappings-curation-app-app:latest',
 ] }
 _remote-journalctl-follow-app = { cmd = [
   'ssh',
