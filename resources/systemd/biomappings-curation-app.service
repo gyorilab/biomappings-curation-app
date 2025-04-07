@@ -2,8 +2,8 @@
 WantedBy=multi-user.target
 
 [Service]
-ExecStart=/home/ubuntu/.local/bin/pixi run up
-ExecStop=/home/ubuntu/.local/bin/pixi run down
+ExecStart=/usr/local/bin/pixi run up
+ExecStop=/usr/local/bin/pixi run down
 Group=ubuntu
 Restart=on-failure
 User=ubuntu

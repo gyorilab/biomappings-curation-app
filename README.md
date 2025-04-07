@@ -42,10 +42,40 @@ printf -- '%s\n' \
   | sudo -- tee -a -- /etc/hosts > /dev/null
 ```
 
-## Launch
+## Start
 
 ``` shell
 pixi run -- up
 ```
+
+## Stop
+
+``` shell
+pixi run -- down
+```
+
+## Deploy
+
+First, ensure you have an SSH destination named `biomappings-curation-app` configured in
+`~/.ssh/config`. I would suggest enabling SSH connection multiplexing in a manner similar to the
+following, as the deployment process runs multiple SSH commands against the deployment host:
+
+``` text
+Host biomappings-curation-app
+  …
+
+Host *
+  ControlMaster auto
+  ControlPath ~/.ssh/sockets/%C
+  ControlPersist 30s
+```
+
+Commit all changes you'd like to deploy, then run:
+
+``` shell
+pixi run -- deploy
+```
+
+## Browse
 
 [Biomappings curation app](https://biomappings-curation-app-lb-00cc5d7d789bc0c6.elb.us-east-1.amazonaws.com)

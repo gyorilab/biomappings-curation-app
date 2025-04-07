@@ -108,6 +108,18 @@ configure-sops-diff = { cmd = [
   'diff.sopsDiff.textconv',
   'pixi run -e secrets -q --frozen --no-progress -- sops decrypt --',
 ] }
+deploy = { depends-on = [
+  '_remote-systemctl-stop-app',
+  '_remote-rm-repo',
+  '_remote-copy-repo',
+  '_remote-clone-biomappings-repo',
+  '_remote-rm-volume-postgres',
+  '_remote-copy-systemd-app',
+  '_remote-systemctl-daemon-reload',
+  '_remote-systemctl-start-app',
+  '_remote-systemctl-status-app',
+  '_remote-journalctl-follow-app',
+] }
 down = { cmd = [
   'sops',
   'exec-env',
@@ -128,6 +140,61 @@ up = { cmd = [
   'docker compose up',
 ] }
 update-keys = { cmd = ['sops', 'updatekeys', '--yes', '--', 'env/secret.env.sops.env'] }
+_remote-clone-biomappings-repo = { cmd = [
+  'ssh',
+  '--',
+  'biomappings-curation-app',
+  'pixi run --manifest-path /data/biomappings-curation-app -- clone-biomappings-repo',
+] }
+_remote-copy-repo = { cmd = '''git archive --prefix=biomappings-curation-app/ -- main | ssh -- biomappings-curation-app 'tar -x -C /data -f -';''' }
+_remote-copy-systemd-app = { cmd = [
+  'ssh',
+  '--',
+  'biomappings-curation-app',
+  'sudo -- cp -- /data/biomappings-curation-app/resources/systemd/biomappings-curation-app.service /etc/systemd/system',
+] }
+_remote-journalctl-follow-app = { cmd = [
+  'ssh',
+  '--',
+  'biomappings-curation-app',
+  'journalctl --follow --unit=biomappings-curation-app.service',
+] }
+_remote-rm-repo = { cmd = [
+  'ssh',
+  '--',
+  'biomappings-curation-app',
+  'rm -fr -- /data/biomappings-curation-app',
+] }
+_remote-rm-volume-postgres = { cmd = [
+  'ssh',
+  '--',
+  'biomappings-curation-app',
+  'docker volume rm -f -- biomappings-curation-app_postgres-data',
+] }
+_remote-systemctl-daemon-reload = { cmd = [
+  'ssh',
+  '--',
+  'biomappings-curation-app',
+  'sudo -- systemctl daemon-reload',
+] }
+_remote-systemctl-start-app = { cmd = [
+  'ssh',
+  '--',
+  'biomappings-curation-app',
+  'sudo -- systemctl start -- biomappings-curation-app.service',
+] }
+_remote-systemctl-status-app = { cmd = [
+  'ssh',
+  '--',
+  'biomappings-curation-app',
+  'systemctl status -- biomappings-curation-app.service',
+] }
+_remote-systemctl-stop-app = { cmd = [
+  'ssh',
+  '--',
+  'biomappings-curation-app',
+  'sudo -- systemctl stop -- biomappings-curation-app.service',
+] }
 _rm-biomappings-repo = { cmd = ['rm', '-fr', '--', 'resources/biomappings'] }
 
 [tool.pixi.feature.secrets.tasks._clone-biomappings-repo]
