@@ -23,12 +23,12 @@ services:
       - app_protocol: 'https'
         mode: 'host'
         protocol: 'tcp'
-        published: '8443'
+        published: '${HTTPS_PORT:-443}'
         target: 443
       - app_protocol: 'https'
         mode: 'host'
         protocol: 'udp'
-        published: '8443'
+        published: '${HTTPS_PORT:-443}'
         target: 443
     restart: 'unless-stopped'
     volumes:
