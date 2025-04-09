@@ -37,8 +37,8 @@
 
 ``` shell
 printf -- '%s\n' \
-    '::1 biomappings-curation-app-lb-00cc5d7d789bc0c6.elb.us-east-1.amazonaws.com' \
-    '127.0.0.1 biomappings-curation-app-lb-00cc5d7d789bc0c6.elb.us-east-1.amazonaws.com' \
+    '::1 curate.biomappings.localdomain' \
+    '127.0.0.1 curate.biomappings.localdomain' \
   | sudo -- tee -a -- /etc/hosts > /dev/null
 ```
 
