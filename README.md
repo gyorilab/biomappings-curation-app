@@ -48,6 +48,10 @@ printf -- '%s\n' \
 pixi run -- up
 ```
 
+## Browse local app
+
+[Biomappings curation app](https://curate.biomappings.localdomain)
+
 ## Stop
 
 ``` shell
@@ -56,9 +60,10 @@ pixi run -- down
 
 ## Deploy
 
-First, ensure you have an SSH destination named `biomappings-curation-app` configured in
-`~/.ssh/config`. I would suggest enabling SSH connection multiplexing in a manner similar to the
-following, as the deployment process runs multiple SSH commands against the deployment host:
+First, ensure you have the deployment host configured as a SSH destination named
+`biomappings-curation-app` in `~/.ssh/config`. I would suggest enabling SSH connection multiplexing
+in a manner similar to the following, as the deployment process runs multiple SSH commands against
+the deployment host:
 
 ``` text
 Host biomappings-curation-app
@@ -76,6 +81,6 @@ Commit all changes you'd like to deploy, then run:
 pixi run -- deploy
 ```
 
-## Browse
+## Browse deployed app
 
 [Biomappings curation app](https://biomappings-curation-app-lb-00cc5d7d789bc0c6.elb.us-east-1.amazonaws.com)
