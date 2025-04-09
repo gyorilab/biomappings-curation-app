@@ -9,7 +9,7 @@
     ask http://localhost:5000
   }
   servers {
-    trusted_proxies static 172.31.0.0/16
+    trusted_proxies static {$AWS_VPC_CIDR}
     trusted_proxies_strict
   }
 }
