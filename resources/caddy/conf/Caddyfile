@@ -3,15 +3,18 @@
 
 # https://caddyserver.com/docs/caddyfile/options
 {
+  # TODO: delete this directive after successful issuance from the LE staging endpoint.
+  acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+  on_demand_tls {
+    ask http://localhost:5000
+  }
   servers {
     trusted_proxies static 172.31.0.0/16
     trusted_proxies_strict
   }
 }
 
-{$HOSTNAME} {
-  tls internal
-
+(backend) {
   handle /oauth2/* {
     reverse_proxy http://oauth2-proxy:4180 {
       # oauth2-proxy requires the X-Real-IP and X-Forwarded-{Proto,Host,Uri} headers. The
@@ -58,4 +61,28 @@
       request_buffers unlimited
     }
   }
+}
+
+(tls_on_demand) {
+  tls {
+    on_demand
+    issuer acme {
+      disable_http_challenge
+    }
+  }
+}
+
+:5000 {
+  @not_hostname not query domain={$HOSTNAME}
+  respond @not_hostname 403
+}
+
+curate.biomappings.localdomain biomappings-curation-app-lb-00cc5d7d789bc0c6.elb.us-east-1.amazonaws.com {
+  tls internal
+  import backend
+}
+
+https:// {
+  import tls_on_demand
+  import backend
 }
