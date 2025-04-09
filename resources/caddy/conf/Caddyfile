@@ -1,4 +1,4 @@
-# vim: set ft=conf :
+# vim: set ft=caddyfile :
 
 
 # https://caddyserver.com/docs/caddyfile/options
