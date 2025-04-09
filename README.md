@@ -46,13 +46,13 @@ it](https://github.com/getsops/sops#23encrypting-using-age).
 On macOS, this file is located at
 
 ``` shell
-KEYS_FILE="${HOME}/Library/Application Support/sops/age/keys.txt"
+KEYS_FILE="${XDG_CONFIG_HOME:-"${HOME}/Library/Application Support"}/sops/age/keys.txt"
 ```
 
 On Linux, this file is located at
 
 ``` shell
-KEYS_FILE="${XDG_CONFIG_HOME-"${HOME}/.config"}/sops/age/keys.txt"
+KEYS_FILE="${XDG_CONFIG_HOME:-"${HOME}/.config"}/sops/age/keys.txt"
 ```
 
 Generate a keypair and append it to `$KEYS_FILE`:
