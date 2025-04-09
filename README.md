@@ -26,44 +26,78 @@
   Git](https://github.com/getsops/sops#showing-diffs-in-cleartext-in-git) and
   [`.gitattributes`](.gitattributes) to learn more.
 
-* Clone the Biomappings repository:
+* Update `/etc/hosts`:
 
     ``` shell
-    pixi run -- clone-biomappings-repo
+    printf -- '%s\n' \
+        '::1 curate.biomappings.localdomain' \
+        '127.0.0.1 curate.biomappings.localdomain' \
+      | sudo -- tee -a -- /etc/hosts > /dev/null
     ```
 
+## Local development
 
-## Update `/etc/hosts`
+### Gain access to [`env/secret.env.sops.env`](env/secret.env.sops.env)
+
+You'll need to create an [age](https://github.com/FiloSottile/age#readme)
+keypair and write the private key to a [file where SOPS can find
+it](https://github.com/getsops/sops#23encrypting-using-age).
+
+On macOS, this file is located at
 
 ``` shell
-printf -- '%s\n' \
-    '::1 curate.biomappings.localdomain' \
-    '127.0.0.1 curate.biomappings.localdomain' \
-  | sudo -- tee -a -- /etc/hosts > /dev/null
+KEYS_FILE="${HOME}/Library/Application Support/sops/age/keys.txt"
 ```
 
-## Start
+On Linux, this file is located at
+
+``` shell
+KEYS_FILE="${XDG_CONFIG_HOME-"${HOME}/.config"}/sops/age/keys.txt"
+```
+
+Generate a keypair and append it to `$KEYS_FILE`:
+
+``` shell
+mkdir -p -- "$(dirname -- "${KEYS_FILE}")"
+touch -- "${KEYS_FILE}"
+chmod -- 600 "${KEYS_FILE}"
+age-keygen >> "${KEYS_FILE}"
+```
+
+Take the public key from `$KEYS_FILE` that you just generated and send it to Mike, who will add it
+to [`.sops.yaml`](.sops.yaml) and re-encrypt [`env/secret.env.sops.env`](env/secret.env.sops.env) so
+that it may be decrypted in your environment.
+
+### Start Compose stack
+
+First, clone the Biomappings repository with
+
+``` shell
+pixi run -- clone-biomappings-repo
+```
+
+and then bring up the Compose stack:
 
 ``` shell
 pixi run -- up
 ```
 
-## Browse local app
+### Browse local app
 
-[Biomappings curation app](https://curate.biomappings.localdomain)
+[Biomappings curation app (local)](https://curate.biomappings.localdomain)
 
-## Stop
+### Stop Compose stack
 
 ``` shell
 pixi run -- down
 ```
 
-## Deploy
+## Deploying changes
 
 First, ensure you have the deployment host configured as a SSH destination named
 `biomappings-curation-app` in `~/.ssh/config`. I would suggest enabling SSH connection multiplexing
-in a manner similar to the following, as the deployment process runs multiple SSH commands against
-the deployment host:
+with `ControlPersist` set to a non-zero timeout, as the deployment process runs multiple SSH
+commands against the deployment host. For example:
 
 ``` text
 Host biomappings-curation-app
@@ -71,9 +105,11 @@ Host biomappings-curation-app
 
 Host *
   ControlMaster auto
-  ControlPath ~/.ssh/sockets/%C
+  ControlPath ~/.ssh/%C
   ControlPersist 30s
 ```
+
+### Deploy
 
 Commit all changes you'd like to deploy, then run:
 
@@ -81,6 +117,7 @@ Commit all changes you'd like to deploy, then run:
 pixi run -- deploy
 ```
 
-## Browse deployed app
+### Browse deployed app
 
-[Biomappings curation app](https://biomappings-curation-app-lb-00cc5d7d789bc0c6.elb.us-east-1.amazonaws.com)
+[Biomappings curation app
+(deployed)](https://biomappings-curation-app-lb-00cc5d7d789bc0c6.elb.us-east-1.amazonaws.com)
