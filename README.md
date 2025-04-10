@@ -88,13 +88,20 @@ may be decrypted in your environment.
 
 ### Start Compose stack
 
-First, clone the Biomappings repository with
+First, clone the Biomappings repository:
 
 ``` shell
 pixi run -- clone-biomappings-repo
 ```
 
-and then bring up the Compose stack:
+If you're running Linux and have SELinux enabled in enforcing mode, make sure that the files to be
+bind-mounted are correctly labeled:
+
+``` shell
+chcon -R -t container_file_t -- app.py resources
+```
+
+Finally, bring up the Compose stack:
 
 ``` shell
 pixi run -- up
