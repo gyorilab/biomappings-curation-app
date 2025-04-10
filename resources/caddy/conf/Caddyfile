@@ -7,7 +7,7 @@
   # TODO: delete this directive after successful issuance from the LE staging endpoint.
   acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
   on_demand_tls {
-    ask http://localhost:5000
+    ask http://localhost:9001
   }
   servers {
     trusted_proxies static {$AWS_VPC_CIDR}
@@ -73,11 +73,6 @@
   }
 }
 
-:5000 {
-  @not_hostname not query domain={$HOSTNAME}
-  respond @not_hostname 403
-}
-
 curate.biomappings.localdomain biomappings-curation-app-lb-00cc5d7d789bc0c6.elb.us-east-1.amazonaws.com {
   tls internal
   import backend
@@ -86,4 +81,9 @@ curate.biomappings.localdomain biomappings-curation-app-lb-00cc5d7d789bc0c6.elb.
 https:// {
   import tls_on_demand
   import backend
+}
+
+:9001 {
+  @not_hostname not query domain={$HOSTNAME}
+  respond @not_hostname 403
 }

@@ -35,6 +35,24 @@
       | sudo -- tee -a -- /etc/hosts > /dev/null
     ```
 
+### Linux
+
+ORCID OAuth2 client configurations support only `https` URLs with the default port of 443, so
+the app must be accessible on port 443.
+
+This is [not a problem on macOS ≥
+10.14](https://developer.apple.com/forums/thread/674179?answerId=662907022#662907022). Linux may be
+configured such that all ports (including 443) are unprivileged by running:
+
+``` shell
+printf -- '%s\n' 'net.ipv4.ip_unprivileged_port_start = 0' \
+  | sudo -- tee -a -- /etc/sysctl.d/50-unprivileged-ports.conf > /dev/null
+sudo -- sysctl -q --system
+```
+
+Despite the `ipv4` suggesting otherwise, this kernel parameter also [applies to
+IPv6](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4548b683b78137f8eadeb312b94e20bb0d4a7141).
+
 ## Local development
 
 ### Gain access to [`env/secret.env.sops.env`](env/secret.env.sops.env)
