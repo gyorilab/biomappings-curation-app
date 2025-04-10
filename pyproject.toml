@@ -111,11 +111,11 @@ configure-sops-diff = { cmd = [
 deploy = { depends-on = [
   '_remote-systemctl-stop-app',
   '_remote-rm-repo',
-  '_remote-copy-repo',
+  '_remote-cp-repo',
   '_remote-clone-biomappings-repo',
-  '_remote-docker-image-rm-app',
-  '_remote-rm-volume-postgres',
-  '_remote-copy-systemd-app',
+  '_remote-rm-docker-image-app',
+  '_remote-rm-docker-volume-postgres',
+  '_remote-cp-systemd-app',
   '_remote-systemctl-daemon-reload',
   '_remote-systemctl-start-app',
   '_remote-systemctl-status-app',
@@ -147,18 +147,12 @@ _remote-clone-biomappings-repo = { cmd = [
   'biomappings-curation-app',
   'pixi run --manifest-path /data/biomappings-curation-app -- clone-biomappings-repo',
 ] }
-_remote-copy-repo = { cmd = '''git archive --prefix=biomappings-curation-app/ -- main | ssh -- biomappings-curation-app 'tar -x -C /data -f -';''' }
-_remote-copy-systemd-app = { cmd = [
+_remote-cp-repo = { cmd = '''git archive --prefix=biomappings-curation-app/ -- main | ssh -- biomappings-curation-app 'tar -x -C /data -f -';''' }
+_remote-cp-systemd-app = { cmd = [
   'ssh',
   '--',
   'biomappings-curation-app',
   'sudo -- cp -- /data/biomappings-curation-app/resources/systemd/biomappings-curation-app.service /etc/systemd/system',
-] }
-_remote-docker-image-rm-app = { cmd = [
-  'ssh',
-  '--',
-  'biomappings-curation-app',
-  'docker image rm -f -- biomappings-curation-app-app:latest',
 ] }
 _remote-journalctl-follow-app = { cmd = [
   'ssh',
@@ -166,17 +160,23 @@ _remote-journalctl-follow-app = { cmd = [
   'biomappings-curation-app',
   'journalctl --follow --unit=biomappings-curation-app.service',
 ] }
+_remote-rm-docker-image-app = { cmd = [
+  'ssh',
+  '--',
+  'biomappings-curation-app',
+  'docker image rm -f -- biomappings-curation-app-app:latest',
+] }
+_remote-rm-docker-volume-postgres = { cmd = [
+  'ssh',
+  '--',
+  'biomappings-curation-app',
+  'docker volume rm -f -- biomappings-curation-app_postgres-data',
+] }
 _remote-rm-repo = { cmd = [
   'ssh',
   '--',
   'biomappings-curation-app',
   'rm -fr -- /data/biomappings-curation-app',
-] }
-_remote-rm-volume-postgres = { cmd = [
-  'ssh',
-  '--',
-  'biomappings-curation-app',
-  'docker volume rm -f -- biomappings-curation-app_postgres-data',
 ] }
 _remote-systemctl-daemon-reload = { cmd = [
   'ssh',
