@@ -13,6 +13,11 @@ platforms = [
   'osx-arm64',
 ]
 
+[tool.pixi.activation.env]
+PROJECT_NAME = 'biomappings-curation-app'
+SECRET_FILE = 'env/secret.sops.env'
+SSH_DESTINATION = 'gyori-services'
+
 [tool.pixi.dependencies]
 git = { version = '>=2.49.0' }
 python = { version = '>=3.13.2,<3.14' }
@@ -119,94 +124,112 @@ deploy = { depends-on = [
   '_remote-systemctl-daemon-reload',
   '_remote-systemctl-start-app',
   '_remote-systemctl-status-app',
-  '_remote-journalctl-follow-app',
+  'remote-journalctl-follow-app',
 ] }
 down = { cmd = [
   'sops',
   'exec-env',
   '--same-process',
   '--',
-  'env/secret.sops.env',
+  '$SECRET_FILE',
   'docker compose down',
 ] }
-edit-secrets = { cmd = ['sops', 'edit', '--', 'env/secret.sops.env'] }
+edit-secrets = { cmd = ['sops', 'edit', '--', '$SECRET_FILE'] }
 refresh-keys = { depends-on = ['update-keys', 'rotate-keys'] }
-rotate-keys = { cmd = ['sops', 'rotate', '--in-place', '--', 'env/secret.sops.env'] }
+remote-journalctl-follow-app = { cmd = [
+  'ssh',
+  '--',
+  '$SSH_DESTINATION',
+  'env',
+  '--',
+  'PROJECT_NAME=$PROJECT_NAME',
+  '''sh -euc 'exec journalctl --follow --unit="${PROJECT_NAME}.service"';''',
+] }
+rotate-keys = { cmd = ['sops', 'rotate', '--in-place', '--', '$SECRET_FILE'] }
 up = { cmd = [
   'sops',
   'exec-env',
   '--same-process',
   '--',
-  'env/secret.sops.env',
+  '$SECRET_FILE',
   'docker compose up',
 ] }
-update-keys = { cmd = ['sops', 'updatekeys', '--yes', '--', 'env/secret.sops.env'] }
+update-keys = { cmd = ['sops', 'updatekeys', '--yes', '--', '$SECRET_FILE'] }
 _remote-clone-biomappings-repo = { cmd = [
   'ssh',
   '--',
-  'biomappings-curation-app',
-  'pixi run --manifest-path /data/biomappings-curation-app -- clone-biomappings-repo',
+  '$SSH_DESTINATION',
+  'env',
+  '--',
+  'PROJECT_NAME=$PROJECT_NAME',
+  '''sh -euc 'exec pixi run --manifest-path "/data/${PROJECT_NAME}" -- clone-biomappings-repo';''',
 ] }
-_remote-cp-repo = { cmd = '''git archive --prefix=biomappings-curation-app/ -- main | ssh -- biomappings-curation-app 'tar -x -C /data -f -';''' }
+_remote-cp-repo = { cmd = '''git archive --prefix="$PROJECT_NAME/" -- main | ssh -- "$SSH_DESTINATION" tar -x -C /data -f -;''' }
 _remote-cp-systemd-app = { cmd = [
   'ssh',
   '--',
-  'biomappings-curation-app',
-  'sudo -- cp -- /data/biomappings-curation-app/resources/systemd/biomappings-curation-app.service /etc/systemd/system',
-] }
-_remote-journalctl-follow-app = { cmd = [
-  'ssh',
+  '$SSH_DESTINATION',
+  'env',
   '--',
-  'biomappings-curation-app',
-  'journalctl --follow --unit=biomappings-curation-app.service',
+  'PROJECT_NAME=$PROJECT_NAME',
+  '''sh -euc 'exec sudo -- cp -- "/data/${PROJECT_NAME}/resources/systemd/biomappings-curation-app.service" /etc/systemd/system';''',
 ] }
 _remote-rm-docker-image-app = { cmd = [
   'ssh',
   '--',
-  'biomappings-curation-app',
-  'docker image rm -f -- biomappings-curation-app-app:latest',
+  '$SSH_DESTINATION',
+  'env',
+  '--',
+  'PROJECT_NAME=$PROJECT_NAME',
+  '''sh -euc 'exec docker image rm -f -- "${PROJECT_NAME}-app:latest"';''',
 ] }
 _remote-rm-docker-volume-postgres = { cmd = [
   'ssh',
   '--',
-  'biomappings-curation-app',
-  'docker volume rm -f -- biomappings-curation-app_postgres-data',
+  '$SSH_DESTINATION',
+  'env',
+  '--',
+  'PROJECT_NAME=$PROJECT_NAME',
+  '''sh -euc 'exec docker volume rm -f -- "${PROJECT_NAME}_postgres-data"';''',
 ] }
 _remote-rm-repo = { cmd = [
   'ssh',
   '--',
-  'biomappings-curation-app',
-  'rm -fr -- /data/biomappings-curation-app',
+  '$SSH_DESTINATION',
+  'env',
+  '--',
+  'PROJECT_NAME=$PROJECT_NAME',
+  '''sh -euc 'exec rm -fr -- "/data/${PROJECT_NAME}"';''',
 ] }
 _remote-systemctl-daemon-reload = { cmd = [
   'ssh',
   '--',
-  'biomappings-curation-app',
+  '$SSH_DESTINATION',
   'sudo -- systemctl daemon-reload',
 ] }
 _remote-systemctl-start-app = { cmd = [
   'ssh',
   '--',
-  'biomappings-curation-app',
+  '$SSH_DESTINATION',
   'sudo -- systemctl start -- biomappings-curation-app.service',
 ] }
 _remote-systemctl-status-app = { cmd = [
   'ssh',
   '--',
-  'biomappings-curation-app',
+  '$SSH_DESTINATION',
   'systemctl status -- biomappings-curation-app.service',
 ] }
 _remote-systemctl-stop-app = { cmd = [
   'ssh',
   '--',
-  'biomappings-curation-app',
+  '$SSH_DESTINATION',
   'sudo -- systemctl stop -- biomappings-curation-app.service',
 ] }
 _rm-biomappings-repo = { cmd = ['rm', '-fr', '--', 'resources/biomappings'] }
 
 [tool.pixi.feature.secrets.tasks._clone-biomappings-repo]
 env = { REPOSITORY = 'https://github.com/manselmi/biomappings.git' }
-cmd = '''sops exec-env --same-process -- env/secret.sops.env 'git clone --config=credential.useHttpPath=true --config="credential.${REPOSITORY}.helper"='"'"'!f() { test "${1}" = "get" && printf "%s\n" authtype=basic "credential=$(printf "%s" "oauth2:${GITHUB_TOKEN}" | base64 -w 0)" ephemeral=true; }; f'"'"' --depth=1 --origin=origin -- "${REPOSITORY}" resources/biomappings';'''
+cmd = '''sops exec-env --same-process -- "$SECRET_FILE" 'git clone --config=credential.useHttpPath=true --config="credential.${REPOSITORY}.helper"='"'"'!f() { test "${1}" = "get" && printf "%s\n" authtype=basic "credential=$(printf "%s" "oauth2:${GITHUB_TOKEN}" | base64 -w 0)" ephemeral=true; }; f'"'"' --depth=1 --origin=origin -- "${REPOSITORY}" resources/biomappings';'''
 
 
 [tool.mypy]

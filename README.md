@@ -115,13 +115,13 @@ pixi run -- down
 
 ## Deploying changes
 
-First, ensure you have the deployment host configured as a SSH destination named
-`biomappings-curation-app` in `~/.ssh/config`. I would suggest enabling SSH connection multiplexing
-with `ControlPersist` set to a non-zero timeout, as the deployment process runs multiple SSH
-commands against the deployment host. For example:
+First, ensure you have the deployment host configured as a SSH destination named `gyori-services` in
+`~/.ssh/config`. I would suggest enabling SSH connection multiplexing with `ControlPersist` set to a
+non-zero timeout, as the deployment process runs multiple SSH commands against the deployment host.
+For example:
 
 ``` text
-Host biomappings-curation-app
+Host gyori-services
   …
 
 Host *
