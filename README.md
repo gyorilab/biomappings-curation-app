@@ -55,7 +55,7 @@ IPv6](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/
 
 ## Local development
 
-### Gain access to [`env/secret.env.sops.env`](env/secret.env.sops.env)
+### Gain access to [`env/secret.sops.env`](env/secret.sops.env)
 
 You'll need to create an [age](https://github.com/FiloSottile/age#readme)
 keypair and write the private key to a [file where SOPS can find
@@ -83,8 +83,8 @@ age-keygen >> "${KEYS_FILE}"
 ```
 
 Take the public key from `$KEYS_FILE` that you just generated and send it to Mike, who will add it
-to [`.sops.yaml`](.sops.yaml) and re-encrypt [`env/secret.env.sops.env`](env/secret.env.sops.env) so
-that it may be decrypted in your environment.
+to [`.sops.yaml`](.sops.yaml) and re-encrypt [`env/secret.sops.env`](env/secret.sops.env) so that it
+may be decrypted in your environment.
 
 ### Start Compose stack
 

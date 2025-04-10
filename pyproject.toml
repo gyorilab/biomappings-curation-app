@@ -126,21 +126,21 @@ down = { cmd = [
   'exec-env',
   '--same-process',
   '--',
-  'env/secret.env.sops.env',
+  'env/secret.sops.env',
   'docker compose down',
 ] }
-edit-secrets = { cmd = ['sops', 'edit', '--', 'env/secret.env.sops.env'] }
+edit-secrets = { cmd = ['sops', 'edit', '--', 'env/secret.sops.env'] }
 refresh-keys = { depends-on = ['update-keys', 'rotate-keys'] }
-rotate-keys = { cmd = ['sops', 'rotate', '--in-place', '--', 'env/secret.env.sops.env'] }
+rotate-keys = { cmd = ['sops', 'rotate', '--in-place', '--', 'env/secret.sops.env'] }
 up = { cmd = [
   'sops',
   'exec-env',
   '--same-process',
   '--',
-  'env/secret.env.sops.env',
+  'env/secret.sops.env',
   'docker compose up',
 ] }
-update-keys = { cmd = ['sops', 'updatekeys', '--yes', '--', 'env/secret.env.sops.env'] }
+update-keys = { cmd = ['sops', 'updatekeys', '--yes', '--', 'env/secret.sops.env'] }
 _remote-clone-biomappings-repo = { cmd = [
   'ssh',
   '--',
@@ -206,7 +206,7 @@ _rm-biomappings-repo = { cmd = ['rm', '-fr', '--', 'resources/biomappings'] }
 
 [tool.pixi.feature.secrets.tasks._clone-biomappings-repo]
 env = { REPOSITORY = 'https://github.com/manselmi/biomappings.git' }
-cmd = '''sops exec-env --same-process -- env/secret.env.sops.env 'git clone --config=credential.useHttpPath=true --config="credential.${REPOSITORY}.helper"='"'"'!f() { test "${1}" = "get" && printf "%s\n" authtype=basic "credential=$(printf "%s" "oauth2:${GITHUB_TOKEN}" | base64 -w 0)" ephemeral=true; }; f'"'"' --depth=1 --origin=origin -- "${REPOSITORY}" resources/biomappings';'''
+cmd = '''sops exec-env --same-process -- env/secret.sops.env 'git clone --config=credential.useHttpPath=true --config="credential.${REPOSITORY}.helper"='"'"'!f() { test "${1}" = "get" && printf "%s\n" authtype=basic "credential=$(printf "%s" "oauth2:${GITHUB_TOKEN}" | base64 -w 0)" ephemeral=true; }; f'"'"' --depth=1 --origin=origin -- "${REPOSITORY}" resources/biomappings';'''
 
 
 [tool.mypy]
