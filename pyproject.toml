@@ -100,10 +100,7 @@ SSH_DESTINATION = 'gyori-services'
 go-sops = { version = '>=3.10.1' }
 
 [tool.pixi.feature.secrets.tasks]
-clone-biomappings-repo = { depends-on = [
-  '_rm-biomappings-repo',
-  '_clone-biomappings-repo',
-] }
+clone-biomappings-repo = { depends-on = ['_rm-biomappings-repo', '_clone-biomappings-repo'] }
 configure-sops-diff = { cmd = [
   'git',
   'config',
@@ -126,76 +123,90 @@ deploy = { depends-on = [
   '_remote-systemctl-status-app',
   'remote-journalctl-follow-app',
 ] }
-down = { cmd = [
-  'sops',
-  'exec-env',
-  '--same-process',
-  '--',
-  '$SECRET_FILE',
-  'docker compose down',
-] }
+down = { cmd = ['sops', 'exec-env', '--same-process', '--', '$SECRET_FILE', 'docker compose down'] }
 edit-secrets = { cmd = ['sops', 'edit', '--', '$SECRET_FILE'] }
 refresh-keys = { depends-on = ['update-keys', 'rotate-keys'] }
 rotate-keys = { cmd = ['sops', 'rotate', '--in-place', '--', '$SECRET_FILE'] }
-up = { cmd = [
-  'sops',
-  'exec-env',
-  '--same-process',
-  '--',
-  '$SECRET_FILE',
-  'docker compose up',
-] }
+up = { cmd = ['sops', 'exec-env', '--same-process', '--', '$SECRET_FILE', 'docker compose up'] }
 update-keys = { cmd = ['sops', 'updatekeys', '--yes', '--', '$SECRET_FILE'] }
 _remote-systemctl-daemon-reload = { cmd = [
-  'ssh',
-  '--',
-  '$SSH_DESTINATION',
-  'sudo -- systemctl daemon-reload',
+  'ssh', '--', '$SSH_DESTINATION', 'sudo -- systemctl daemon-reload',
 ] }
 _remote-systemctl-start-app = { cmd = [
-  'ssh',
-  '--',
-  '$SSH_DESTINATION',
-  'sudo -- systemctl start -- biomappings-curation-app.service',
+  'ssh', '--', '$SSH_DESTINATION', 'sudo -- systemctl start -- biomappings-curation-app.service',
 ] }
 _remote-systemctl-status-app = { cmd = [
-  'ssh',
-  '--',
-  '$SSH_DESTINATION',
-  'systemctl status -- biomappings-curation-app.service',
+  'ssh', '--', '$SSH_DESTINATION', 'systemctl status -- biomappings-curation-app.service',
 ] }
 _remote-systemctl-stop-app = { cmd = [
-  'ssh',
-  '--',
-  '$SSH_DESTINATION',
-  'sudo -- systemctl stop -- biomappings-curation-app.service',
+  'ssh', '--', '$SSH_DESTINATION', 'sudo -- systemctl stop -- biomappings-curation-app.service',
 ] }
 _rm-biomappings-repo = { cmd = ['rm', '-fr', '--', 'resources/biomappings'] }
 
 [tool.pixi.feature.secrets.tasks.remote-journalctl-follow-app]
-cmd = '''printf -- '%s' "$PROJECT_NAME" | ssh -- "$SSH_DESTINATION" 'IFS= read -r -d "" PROJECT_NAME; exec -- journalctl --follow --unit="${PROJECT_NAME}.service"''''
+cmd = """
+printf -- '%s' "$PROJECT_NAME" | ssh -- "$SSH_DESTINATION" '\
+  IFS= read -r -d "" PROJECT_NAME; exec -- journalctl --follow --unit="${PROJECT_NAME}.service"\
+'"""
 
 [tool.pixi.feature.secrets.tasks._clone-biomappings-repo]
 env = { REPOSITORY = 'https://github.com/manselmi/biomappings.git' }
-cmd = '''sops exec-env --same-process -- "$SECRET_FILE" 'git clone --config=credential.useHttpPath=true --config="credential.${REPOSITORY}.helper"='"'"'!f() { test "${1}" = "get" && printf "%s\n" authtype=basic "credential=$(printf "%s" "oauth2:${GITHUB_TOKEN}" | base64 -w 0)" ephemeral=true; }; f'"'"' --depth=1 --origin=origin -- "${REPOSITORY}" resources/biomappings''''
+cmd = """
+sops exec-env --same-process -- "$SECRET_FILE" '\
+  git clone \
+    --config=credential.useHttpPath=true \
+    --config="credential.${REPOSITORY}.helper"='"'"'\
+      !f() { \
+        test "${1}" = "get" && printf "%s\\n" \
+          authtype=basic \
+          "credential=$(printf "%s" "oauth2:${GITHUB_TOKEN}" | base64 -w 0)" \
+          ephemeral=true; \
+      }; f\
+    '"'"' \
+    --depth=1 \
+    --origin=origin \
+    -- \
+    "${REPOSITORY}" \
+    resources/biomappings\
+'"""
 
 [tool.pixi.feature.secrets.tasks._remote-clone-biomappings-repo]
-cmd = '''printf -- '%s' "$PROJECT_NAME" | ssh -- "$SSH_DESTINATION" 'IFS= read -r -d "" PROJECT_NAME; exec -- pixi run --manifest-path "/data/${PROJECT_NAME}" -- clone-biomappings-repo''''
+cmd = """
+printf -- '%s' "$PROJECT_NAME" | ssh -- "$SSH_DESTINATION" '\
+  IFS= read -r -d "" PROJECT_NAME; \
+  exec -- pixi run --manifest-path "/data/${PROJECT_NAME}" -- clone-biomappings-repo\
+'"""
 
 [tool.pixi.feature.secrets.tasks._remote-cp-repo]
-cmd = '''git archive --prefix="$PROJECT_NAME/" -- HEAD | ssh -- "$SSH_DESTINATION" tar -x -C /data -f -'''
+cmd = """
+git archive --prefix="$PROJECT_NAME/" -- HEAD | ssh -- "$SSH_DESTINATION" 'tar -x -C /data -f -'"""
 
 [tool.pixi.feature.secrets.tasks._remote-cp-systemd-app]
-cmd = '''printf -- '%s' "$PROJECT_NAME" | ssh -- "$SSH_DESTINATION" 'IFS= read -r -d "" PROJECT_NAME; exec -- sudo -- cp -- "/data/${PROJECT_NAME}/resources/systemd/biomappings-curation-app.service" /etc/systemd/system''''
+cmd = """
+printf -- '%s' "$PROJECT_NAME" | ssh -- "$SSH_DESTINATION" '\
+  IFS= read -r -d "" PROJECT_NAME; \
+  exec -- sudo -- cp -- \
+    "/data/${PROJECT_NAME}/resources/systemd/biomappings-curation-app.service" \
+    /etc/systemd/system\
+'"""
 
 [tool.pixi.feature.secrets.tasks._remote-rm-docker-image-app]
-cmd = '''printf -- '%s' "$PROJECT_NAME" | ssh -- "$SSH_DESTINATION" 'IFS= read -r -d "" PROJECT_NAME; exec -- docker image rm -f -- "${PROJECT_NAME}-app:latest"''''
+cmd = """
+printf -- '%s' "$PROJECT_NAME" | ssh -- "$SSH_DESTINATION" '\
+  IFS= read -r -d "" PROJECT_NAME; exec -- docker image rm -f -- "${PROJECT_NAME}-app:latest"\
+'"""
 
 [tool.pixi.feature.secrets.tasks._remote-rm-docker-volume-postgres]
-cmd = '''printf -- '%s' "$PROJECT_NAME" | ssh -- "$SSH_DESTINATION" 'IFS= read -r -d "" PROJECT_NAME; exec -- docker volume rm -f -- "${PROJECT_NAME}_postgres-data"''''
+cmd = """
+printf -- '%s' "$PROJECT_NAME" | ssh -- "$SSH_DESTINATION" '\
+  IFS= read -r -d "" PROJECT_NAME; exec -- docker volume rm -f -- "${PROJECT_NAME}_postgres-data"\
+'"""
 
 [tool.pixi.feature.secrets.tasks._remote-rm-repo]
-cmd = '''printf -- '%s' "$PROJECT_NAME" | ssh -- "$SSH_DESTINATION" 'IFS= read -r -d "" PROJECT_NAME; exec -- rm -fr -- "/data/${PROJECT_NAME}"''''
+cmd = """
+printf -- '%s' "$PROJECT_NAME" | ssh -- "$SSH_DESTINATION" '\
+  IFS= read -r -d "" PROJECT_NAME; exec -- rm -fr -- "/data/${PROJECT_NAME}"\
+'"""
 
 
 [tool.mypy]
