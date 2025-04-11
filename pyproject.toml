@@ -183,7 +183,7 @@ cmd = '''sops exec-env --same-process -- "$SECRET_FILE" 'git clone --config=cred
 cmd = '''printf -- '%s' "$PROJECT_NAME" | ssh -- "$SSH_DESTINATION" 'IFS= read -r -d "" PROJECT_NAME; exec -- pixi run --manifest-path "/data/${PROJECT_NAME}" -- clone-biomappings-repo''''
 
 [tool.pixi.feature.secrets.tasks._remote-cp-repo]
-cmd = '''git archive --prefix="$PROJECT_NAME/" -- main | ssh -- "$SSH_DESTINATION" tar -x -C /data -f -'''
+cmd = '''git archive --prefix="$PROJECT_NAME/" -- HEAD | ssh -- "$SSH_DESTINATION" tar -x -C /data -f -'''
 
 [tool.pixi.feature.secrets.tasks._remote-cp-systemd-app]
 cmd = '''printf -- '%s' "$PROJECT_NAME" | ssh -- "$SSH_DESTINATION" 'IFS= read -r -d "" PROJECT_NAME; exec -- sudo -- cp -- "/data/${PROJECT_NAME}/resources/systemd/biomappings-curation-app.service" /etc/systemd/system''''
