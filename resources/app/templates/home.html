@@ -21,15 +21,21 @@
         <div class="row">
             <div class="card">
                 <h5 class="card-header text-center">
+                    Biomappings Curation Interface
+                </h5>
+                <h5 class="card-header text-center">
                     <a class="btn btn-primary btn-sm" style="float: left;"
                        href="/oauth2/{% if controller.logged_in %}sign_out{% else %}sign_in{% endif %}?rd={{ (request.root_url.rstrip("/") ~ url_for_state(".home", state=state)) | quote_plus }}">
                         {% if controller.logged_in %}Sign out{% else %}Sign in with ORCID{% endif %}
                     </a>
-                    <a class="btn btn-primary btn-sm" style="float: right;"
-                       href="{{ url_for_state(".summary", state=state) }}">
-                        Filter
+                    <a class="btn btn-primary btn-sm" style="float: center;"
+                       href="{{ url_for(".summary") }}">
+                        Filter by prefix
                     </a>
-                    Biomappings Curation Interface
+                    <a class="btn btn-primary btn-sm" style="float: right;"
+                       href="{{ url_for(".home") }}">
+                        Clear filters
+                    </a>
                 </h5>
                 <div class="card-body">
                     {% if total_curated %}
