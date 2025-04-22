@@ -12,7 +12,8 @@ User=ubuntu
 WorkingDirectory=/data/biomappings-curation-app
 
 [Unit]
-After=network-online.target
+After=network-online.target docker.service
+BindsTo=docker.service
 Description=Biomappings curation app
 Documentation=https://github.com/gyorilab/biomappings-curation-app
-Wants=network-online.target
+Wants=network-online.target docker.service
