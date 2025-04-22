@@ -3,6 +3,7 @@
 
 # https://caddyserver.com/docs/caddyfile/options
 {
+  admin off
   skip_install_trust
   # TODO: delete this directive after successful issuance from the LE staging endpoint.
   acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
