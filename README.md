@@ -57,6 +57,15 @@
    it to [`.sops.yaml`](.sops.yaml) and re-encrypt [`env/secret.sops.env`](env/secret.sops.env) so
    that it may be decrypted in your environment.
 
+1. **[Non-Chrome/Firefox browsers only]** Update `/etc/hosts`:
+
+    ``` shell
+    printf -- '%s\n' \
+        '::1 biomappings-curation-app.localhost' \
+        '127.0.0.1 biomappings-curation-app.localhost' \
+      | sudo -- tee -a -- /etc/hosts > /dev/null
+    ```
+
 1. Clone the Biomappings repository:
 
     ``` shell
