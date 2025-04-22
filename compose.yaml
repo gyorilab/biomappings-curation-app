@@ -1,6 +1,9 @@
 # vim: set ft=yaml :
 
 
+name: 'biomappings-curation-app'
+
+
 networks:
 
   external:
