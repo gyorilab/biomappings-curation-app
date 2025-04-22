@@ -12,6 +12,9 @@
             <div class="col-lg-6">
                 <div class="card">
                     <h5 class="card-header text-center">
+                        Biomappings Curation Interface
+                    </h5>
+                    <h5 class="card-header text-center">
                         <a class="btn btn-primary btn-sm" style="float: left;"
                            href="/oauth2/{% if controller.logged_in %}sign_out{% else %}sign_in{% endif %}?rd={{ (request.root_url.rstrip("/") ~ url_for_state(".summary", state=state)) | quote_plus }}">
                             {% if controller.logged_in %}Sign out{% else %}Sign in with ORCID{% endif %}
@@ -20,7 +23,6 @@
                            href="{{ url_for_state(".home", state=state) }}">
                             Curate
                         </a>
-                        Biomappings Curation Interface
                     </h5>
                     <div class="card-body">
                         <p>
