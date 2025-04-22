@@ -19,7 +19,7 @@ services:
     env_file:
       - path: './env/common.env'
       - path: './env/caddy.env'
-    image: 'docker.io/library/caddy:2.9.1'
+    image: 'docker.io/library/caddy:2.10.0'
     networks:
       - 'external'
     ports:
