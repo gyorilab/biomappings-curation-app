@@ -3,88 +3,93 @@
 
 # https://caddyserver.com/docs/caddyfile/options
 {
-  admin off
-  skip_install_trust
-  # TODO: delete this directive after successful issuance from the LE staging endpoint.
-  acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
-  on_demand_tls {
-    ask http://localhost:9001
-  }
-  servers {
-    trusted_proxies static {$AWS_VPC_CIDR}
-    trusted_proxies_strict
-  }
+	admin off
+	log {
+		level INFO
+	}
+	grace_period 1s
+	auto_https disable_redirects
+	skip_install_trust
+	on_demand_tls {
+		ask http://localhost:9001
+	}
+	servers {
+		trusted_proxies static {$AWS_VPC_CIDR}
+		trusted_proxies_strict
+	}
 }
 
 (backend) {
-  handle /oauth2/* {
-    reverse_proxy http://oauth2-proxy:4180 {
-      # oauth2-proxy requires the X-Real-IP and X-Forwarded-{Proto,Host,Uri} headers. The
-      # reverse_proxy directive automatically sets X-Forwarded-{For,Proto,Host} headers.
-      #
-      # https://caddyserver.com/docs/caddyfile/directives/reverse_proxy#defaults
-      header_up X-Real-IP {remote_host}
-      header_up X-Forwarded-Uri {uri}
-    }
-  }
+	handle /oauth2/* {
+		reverse_proxy http://oauth2-proxy:4180 {
+			# oauth2-proxy requires the X-Real-IP and X-Forwarded-{Proto,Host,Uri} headers. The
+			# reverse_proxy directive automatically sets X-Forwarded-{For,Proto,Host} headers.
+			#
+			# https://caddyserver.com/docs/caddyfile/directives/reverse_proxy#defaults
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-Uri {uri}
+		}
+	}
 
-  handle {
-    forward_auth http://oauth2-proxy:4180 {
-      uri /oauth2/auth
+	handle {
+		forward_auth http://oauth2-proxy:4180 {
+			uri /oauth2/auth
 
-      # oauth2-proxy requires the X-Real-IP and X-Forwarded-{Proto,Host,Uri} headers. The
-      # forward_auth directive automatically sets the X-Forwarded-{For,Proto,Host,Method,Uri}
-      # headers.
-      #
-      # https://caddyserver.com/docs/caddyfile/directives/forward_auth#expanded-form
-      header_up X-Real-IP {remote_host}
+			# oauth2-proxy requires the X-Real-IP and X-Forwarded-{Proto,Host,Uri} headers. The
+			# forward_auth directive automatically sets the X-Forwarded-{For,Proto,Host,Method,Uri}
+			# headers.
+			#
+			# https://caddyserver.com/docs/caddyfile/directives/forward_auth#expanded-form
+			header_up X-Real-IP {remote_host}
 
-      # If needed, you can copy headers from the oauth2-proxy response to the request sent to the
-      # upstream. Make sure to configure the --set-xauthrequest flag to enable this feature.
-      copy_headers X-Auth-Request-Email X-Auth-Request-Groups X-Auth-Request-Preferred-Username X-Auth-Request-User
+			# If needed, you can copy headers from the oauth2-proxy response to the request sent to the
+			# upstream. Make sure to configure the --set-xauthrequest flag to enable this feature.
+			copy_headers X-Auth-Request-Email X-Auth-Request-Groups X-Auth-Request-Preferred-Username X-Auth-Request-User
 
-      # If oauth2-proxy returns a 401 status, redirect the client to the sign-in page.
-      @unauthorized status 401
-      handle_response @unauthorized {
-        @sign_in_required not path / /home
-        handle @sign_in_required {
-          redir * /oauth2/sign_in?rd={scheme}://{host}{uri}
-        }
-      }
-    }
+			# If oauth2-proxy returns a 401 status, redirect the client to the sign-in page.
+			@unauthorized status 401
+			handle_response @unauthorized {
+				@sign_in_required not path / /home
+				handle @sign_in_required {
+					redir * /oauth2/sign_in?rd={scheme}://{host}{uri}
+				}
+			}
+		}
 
-    # If oauth2-proxy returns a 2xx status, the request is then proxied to the upstream.
-    reverse_proxy http://app:5000 {
-      # "[Y]ou need to make sure that [the proxy server] buffers slow clients when you use
-      # default Gunicorn workers. Without this buffering Gunicorn will be easily susceptible to
-      # denial-of-service attacks."
-      #
-      # https://docs.gunicorn.org/en/stable/deploy.html
-      request_buffers unlimited
-    }
-  }
+		# If oauth2-proxy returns a 2xx status, the request is then proxied to the upstream.
+		reverse_proxy http://app:5000 {
+			# "[Y]ou need to make sure that [the proxy server] buffers slow clients when you use
+			# default Gunicorn workers. Without this buffering Gunicorn will be easily susceptible to
+			# denial-of-service attacks."
+			#
+			# https://docs.gunicorn.org/en/stable/deploy.html
+			request_buffers unlimited
+		}
+	}
 }
 
 (tls_on_demand) {
-  tls {
-    on_demand
-    issuer acme {
-      disable_http_challenge
-    }
-  }
+	tls {
+		on_demand
+		issuer acme {
+			# TODO: delete the "dir" directive after successful issuance from the LE staging endpoint.
+			dir https://acme-staging-v02.api.letsencrypt.org/directory
+			disable_http_challenge
+		}
+	}
 }
 
 curate.biomappings.localdomain biomappings-curation-app-lb-00cc5d7d789bc0c6.elb.us-east-1.amazonaws.com {
-  tls internal
-  import backend
+	tls internal
+	import backend
 }
 
 https:// {
-  import tls_on_demand
-  import backend
+	import tls_on_demand
+	import backend
 }
 
 :9001 {
-  @not_hostname not query domain={$HOSTNAME}
-  respond @not_hostname 403
+	@not_hostname not query domain={$HOSTNAME}
+	respond @not_hostname 403
 }
