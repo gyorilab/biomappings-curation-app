@@ -79,7 +79,7 @@
 	}
 }
 
-curate.biomappings.localdomain biomappings-curation-app-lb-00cc5d7d789bc0c6.elb.us-east-1.amazonaws.com {
+biomappings-curation-app.localhost biomappings-curation-app-lb-00cc5d7d789bc0c6.elb.us-east-1.amazonaws.com {
 	tls internal
 	import backend
 }

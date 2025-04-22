@@ -26,15 +26,6 @@
    Git](https://github.com/getsops/sops#showing-diffs-in-cleartext-in-git) and
    [`.gitattributes`](.gitattributes) to learn more.
 
-1. Update `/etc/hosts`:
-
-    ``` shell
-    printf -- '%s\n' \
-        '::1 curate.biomappings.localdomain' \
-        '127.0.0.1 curate.biomappings.localdomain' \
-      | sudo -- tee -a -- /etc/hosts > /dev/null
-    ```
-
 1. Gain access to [`env/secret.sops.env`](env/secret.sops.env):
 
    You'll need to create an [age](https://github.com/FiloSottile/age#readme)
@@ -105,7 +96,7 @@ pixi run -- up
 
 ### Browse local app
 
-[Biomappings curation app (local)](https://curate.biomappings.localdomain)
+[Biomappings curation app (local)](https://biomappings-curation-app.localhost)
 
 ### Stop Compose stack
 
