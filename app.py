@@ -687,7 +687,7 @@ class MappingForm(FlaskForm):
 blueprint = flask.Blueprint("ui", __name__)
 
 
-@blueprint.route("/")
+@blueprint.route("/home")
 def home():
     """Serve the home page."""
     state = State.from_flask_globals()
@@ -709,7 +709,7 @@ def home():
     )
 
 
-@blueprint.route("/summary")
+@blueprint.route("/")
 def summary():
     """Serve the summary page."""
     state = State.from_flask_globals()
