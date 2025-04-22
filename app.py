@@ -2,6 +2,7 @@
 
 import datetime
 import functools
+import itertools
 import operator
 import os
 import shutil
@@ -716,14 +717,15 @@ def summary():
     state.limit = None
     predictions = CONTROLLER.predictions_from_state(state)
     counter = Counter(
-        (mapping["source prefix"], mapping["target prefix"]) for _, mapping in predictions
+        itertools.chain.from_iterable(
+            (mapping["source prefix"], mapping["target prefix"]) for _, mapping in predictions
+        )
     )
     rows = []
-    for (source_prefix, target_prefix), count in counter.most_common():
+    for prefix, count in counter.most_common():
         row_state = deepcopy(state)
-        row_state.source_prefix = source_prefix
-        row_state.target_prefix = target_prefix
-        rows.append((source_prefix, target_prefix, count, url_for_state(".home", row_state)))
+        row_state.prefix = prefix
+        rows.append((prefix, count, url_for_state(".home", row_state)))
 
     return flask.render_template(
         "summary.html",
