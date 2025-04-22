@@ -49,7 +49,7 @@
 			# If oauth2-proxy returns a 401 status, redirect the client to the sign-in page.
 			@unauthorized status 401
 			handle_response @unauthorized {
-				@sign_in_required not path / /home
+				@sign_in_required not path / /home /static/*
 				handle @sign_in_required {
 					redir * /oauth2/sign_in?rd={scheme}://{host}{uri}
 				}

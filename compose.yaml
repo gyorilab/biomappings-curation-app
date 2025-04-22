@@ -108,6 +108,10 @@ services:
         target: '/app/gunicorn.conf.py'
         type: 'bind'
         read_only: true
+      - source: './resources/app/static'
+        target: '/app/static'
+        type: 'bind'
+        read_only: true
       - source: './resources/app/templates'
         target: '/app/templates'
         type: 'bind'

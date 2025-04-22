@@ -232,7 +232,11 @@ def get_app(biomappings_path: Path) -> flask.Flask:
     flask_bootstrap.Bootstrap4(app_)
     app_.register_blueprint(blueprint)
     app_.jinja_env.filters["quote_plus"] = urllib.parse.quote_plus
-    app_.jinja_env.globals.update(controller=controller, url_for_state=url_for_state)
+    app_.jinja_env.globals.update(
+        controller=controller,
+        path_exists=os.path.exists,
+        url_for_state=url_for_state,
+    )
     app_.wsgi_app = ProxyFix(  # type: ignore[method-assign]
         app_.wsgi_app,
         x_for=NUM_PROXIES,
