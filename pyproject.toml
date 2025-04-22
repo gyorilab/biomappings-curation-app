@@ -19,7 +19,7 @@ python = { version = '>=3.13.3,<3.14' }
 
 [tool.pixi.pypi-dependencies]
 biomappings = { version = '>=0.3.7' }
-bioregistry = { version = '>=0.12.10' }
+bioregistry = { version = '>=0.12.11' }
 bootstrap-flask = { version = '>=2.4.2' }
 flask = { version = '>=3.1.0' }
 flask-sqlalchemy = { version = '>=3.1.1' }
@@ -42,7 +42,7 @@ secrets = { features = ['secrets'], no-default-feature = true }
 mypy = { version = '>=1.15.0', extras = ['faster-cache'] }
 pre-commit = { version = '>=4.2.0' }
 pre-commit-hooks = { version = '>=5.0.0' }
-ruff = { version = '>=0.11.5' }
+ruff = { version = '>=0.11.6' }
 types-wtforms = { version = '>=3.2.1.20250401' }
 
 [tool.pixi.feature.lint.tasks]
@@ -97,7 +97,7 @@ SECRET_FILE = 'env/secret.sops.env'
 SSH_DESTINATION = 'gyori-services'
 
 [tool.pixi.feature.secrets.dependencies]
-go-sops = { version = '>=3.10.1' }
+go-sops = { version = '>=3.10.2' }
 
 [tool.pixi.feature.secrets.tasks]
 clone-biomappings-repo = { depends-on = ['_rm-biomappings-repo', '_clone-biomappings-repo'] }
