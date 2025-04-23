@@ -1,7 +1,7 @@
 # vim: set ft=dockerfile :
 
 
-FROM ghcr.io/prefix-dev/pixi:0.45.0 AS build
+FROM ghcr.io/prefix-dev/pixi:0.46.0 AS build
 WORKDIR /app
 COPY ["pyproject.toml", "."]
 COPY ["pixi.lock", "."]
