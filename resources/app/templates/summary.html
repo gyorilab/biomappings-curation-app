@@ -31,7 +31,7 @@
                         </p>
                     </div>
                     <div>
-                        {% set table_width = 4 %}
+                        {% set table_width = 3 %}
                         <table class="table table-bordered">
                             <thead class="thead-light">
                             <tr>
@@ -39,20 +39,28 @@
                             </tr>
                             </thead>
                             <tbody>
-                            {% for prefix, count, link, logo_url in rows %}
+                            {% for prefix, count, link, display_name, logo_url in rows %}
                             {% if loop.index0 % table_width == 0 %}
                                 <tr>
                             {% endif %}
                                     <td>
-                                    {% if logo_url is not none %}
-                                        <a href="{{ link }}"><img style="max-width: 50px" src="{{ logo_url }}" alt="{{ prefix }}-logo"></a>
-                                    {% endif %}
-                                        <p>
-                                            <a href="{{ link }}">{{ prefix }}</a>
-                                        </p>
-                                        <p>
-                                            {{ "({:,d})".format(count) }}
-                                        </p>
+                                        <div class="d-flex justify-content-center align-items-center" style="height: 120px; padding: 10px;">
+                                        {% if logo_url is not none %}
+                                            <a href="{{ link }}">
+                                                <img style="max-height: 100px; max-width: 100%; object-fit: contain;"
+                                                     src="{{ logo_url }}"
+                                                     alt="{{ prefix }}-logo">
+                                            </a>
+                                        {% endif %}
+                                        </div>
+                                        <div class="text-center">
+                                            <p>
+                                                <a href="{{ link }}">{{ display_name }}</a>
+                                            </p>
+                                            <p>
+                                                {{ "({:,d})".format(count) }}
+                                            </p>
+                                        </div>
                                     </td>
                             {% if loop.index0 % table_width == table_width - 1 or loop.last %}
                                 </tr>

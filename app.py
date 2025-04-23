@@ -497,6 +497,16 @@ class Controller:
         return url
 
     @classmethod
+    def get_prefix_display_name(cls, prefix: str) -> str:
+        """Return display name for a given prefix."""
+        resource = bioregistry.get_resource(prefix)
+        if resource is None:
+            raise TypeError
+        if (name := resource.get_name()) is not None:
+            return name
+        return prefix
+
+    @classmethod
     def get_logo_url(cls, prefix: str) -> str | None:
         """Return logo URL for a given prefix."""
         resource = bioregistry.get_resource(prefix)
@@ -743,8 +753,9 @@ def summary():
     for prefix, count in counter.most_common():
         row_state = deepcopy(state)
         row_state.prefix = prefix
+        display_name = CONTROLLER.get_prefix_display_name(prefix)
         logo_url = CONTROLLER.get_logo_url(prefix)
-        rows.append((prefix, count, url_for_state(".home", row_state), logo_url))
+        rows.append((prefix, count, url_for_state(".home", row_state), display_name, logo_url))
 
     return flask.render_template(
         "summary.html",
