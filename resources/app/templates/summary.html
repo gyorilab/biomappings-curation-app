@@ -9,7 +9,7 @@
     <div class="container" style="margin-top: 50px; margin-bottom: 50px">
         {{ util.render_messages(dismissible=True, container=False) }}
         <div class="row justify-content-md-center">
-            <div class="col-lg-6">
+            <div>
                 <div class="card">
                     <h5 class="card-header text-center">
                         Biomappings Curation Interface
@@ -31,7 +31,7 @@
                         </p>
                     </div>
                     <div>
-                        {% set table_width = 3 %}
+                        {% set table_width = 6 %}
                         <table class="table table-bordered">
                             <thead class="thead-light">
                             <tr>
@@ -44,10 +44,10 @@
                                 <tr>
                             {% endif %}
                                     <td>
-                                        <div class="d-flex justify-content-center align-items-center" style="height: 120px; padding: 10px;">
+                                        <div class="d-flex justify-content-center align-items-center" style="height: 100px; padding: 5px;">
                                         {% if logo_url is not none %}
                                             <a href="{{ link }}">
-                                                <img style="max-height: 100px; max-width: 100%; object-fit: contain;"
+                                                <img style="max-height: 95px; max-width: 100%; object-fit: contain;"
                                                      src="{{ logo_url }}"
                                                      alt="{{ prefix }}-logo">
                                             </a>
@@ -55,10 +55,7 @@
                                         </div>
                                         <div class="text-center">
                                             <p>
-                                                <a href="{{ link }}">{{ display_name }}</a>
-                                            </p>
-                                            <p>
-                                                {{ "({:,d})".format(count) }}
+                                                <a href="{{ link }}">{{ display_name }}</a> ({{ "{:,d}".format(count) }})
                                             </p>
                                         </div>
                                     </td>
