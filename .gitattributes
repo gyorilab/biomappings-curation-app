@@ -86,4 +86,3 @@
 *           txt
 *.sops.*    !txt -text diff=sopsDiff
 .sops.yaml  txt
-*.png       bin

@@ -232,11 +232,7 @@ def get_app(biomappings_path: Path) -> flask.Flask:
     flask_bootstrap.Bootstrap4(app_)
     app_.register_blueprint(blueprint)
     app_.jinja_env.filters["quote_plus"] = urllib.parse.quote_plus
-    app_.jinja_env.globals.update(
-        controller=controller,
-        path_exists=os.path.exists,
-        url_for_state=url_for_state,
-    )
+    app_.jinja_env.globals.update(controller=controller, url_for_state=url_for_state)
     app_.wsgi_app = ProxyFix(  # type: ignore[method-assign]
         app_.wsgi_app,
         x_for=NUM_PROXIES,
@@ -490,6 +486,14 @@ class Controller:
             raise TypeError
         return url
 
+    @classmethod
+    def get_logo_url(cls, prefix: str) -> str | None:
+        """Return logo URL for a given prefix."""
+        resource = bioregistry.get_resource(prefix)
+        if resource is None:
+            raise TypeError
+        return resource.get_logo()
+
     @property
     def total_predictions(self) -> int:
         """Return the total number of yet unmarked predictions."""
@@ -729,7 +733,8 @@ def summary():
     for prefix, count in counter.most_common():
         row_state = deepcopy(state)
         row_state.prefix = prefix
-        rows.append((prefix, count, url_for_state(".home", row_state)))
+        logo_url = CONTROLLER.get_logo_url(prefix)
+        rows.append((prefix, count, url_for_state(".home", row_state), logo_url))
 
     return flask.render_template(
         "summary.html",
