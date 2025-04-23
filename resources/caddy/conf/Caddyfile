@@ -16,6 +16,7 @@
 	servers {
 		trusted_proxies static {$AWS_VPC_CIDR}
 		trusted_proxies_strict
+		strict_sni_host on
 	}
 }
 
