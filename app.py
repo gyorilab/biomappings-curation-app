@@ -10,7 +10,7 @@ import subprocess
 import urllib.parse
 import uuid
 from collections import Counter
-from collections.abc import Generator, Iterable, Mapping as MappingT
+from collections.abc import Callable, Generator, Iterable, Mapping as MappingT
 from copy import deepcopy
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -302,14 +302,13 @@ class Controller:
 
         :param source_query: If given, show only equivalences that have it appearing as a substring
             in one of the source fields.
-        :param source_prefix: If given, show only mappings that have it appearing in the source
-            prefix field
+        :param source_prefix: If given, show only mappings that have it equaling the source prefix
+            field
         :param target_query: If given, show only equivalences that have it appearing as a substring
             in one of the target fields.
-        :param target_prefix: If given, show only mappings that have it appearing in the target
-            prefix field
-        :param prefix: If given, show only equivalences that have it appearing as a substring in one
-            of the prefixes.
+        :param target_prefix: If given, show only mappings that have it equaling the target prefix
+            field
+        :param prefix: If given, show only equivalences that have it equaling one of the prefixes.
         :param same_text: If true, filter to predictions with the same label
         :param sort: If "desc", sorts in descending confidence order. If "asc", sorts in increasing
             confidence order. Otherwise, do not sort.
@@ -417,7 +416,9 @@ class Controller:
                 },
             )
         if source_prefix is not None:
-            it = self._help_filter(source_prefix, it, {"source prefix"})
+            it = self._help_filter(
+                source_prefix, it, {"source prefix"}, op_element_query=operator.eq
+            )
         if source_query is not None:
             it = self._help_filter(
                 source_query, it, {"source prefix", "source identifier", "source name"}
@@ -427,9 +428,13 @@ class Controller:
                 target_query, it, {"target prefix", "target identifier", "target name"}
             )
         if target_prefix is not None:
-            it = self._help_filter(target_prefix, it, {"target prefix"})
+            it = self._help_filter(
+                target_prefix, it, {"target prefix"}, op_element_query=operator.eq
+            )
         if prefix is not None:
-            it = self._help_filter(prefix, it, {"source prefix", "target prefix"})
+            it = self._help_filter(
+                prefix, it, {"source prefix", "target prefix"}, op_element_query=operator.eq
+            )
         if provenance is not None:
             it = self._help_filter(provenance, it, {"source"})
 
@@ -465,12 +470,17 @@ class Controller:
         return ((line, prediction) for line, prediction in it if line not in marked)
 
     @staticmethod
-    def _help_filter(query: str, it, elements: set[str]):
+    def _help_filter(
+        query: str,
+        it,
+        elements: set[str],
+        op_element_query: Callable[[str, str], bool] = operator.contains,
+    ):
         query = query.casefold()
         return (
             (line, prediction)
             for line, prediction in it
-            if any(query in prediction[element].casefold() for element in elements)
+            if any(op_element_query(prediction[element].casefold(), query) for element in elements)
         )
 
     @staticmethod
