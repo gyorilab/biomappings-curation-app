@@ -117,7 +117,7 @@ deploy = { depends-on = [
   '_remote-clone-biomappings-repo',
   '_remote-rm-docker-image-app',
   '_remote-rm-docker-volume-postgres',
-  '_remote-cp-systemd-app',
+  '_remote-cp-systemd',
   '_remote-systemctl-daemon-reload',
   '_remote-systemctl-start-app',
   '_remote-systemctl-status-app',
@@ -125,6 +125,14 @@ deploy = { depends-on = [
 ] }
 down = { cmd = ['sops', 'exec-env', '--same-process', '--', '$SECRET_FILE', 'docker compose down'] }
 edit-secrets = { cmd = ['sops', 'edit', '--', '$SECRET_FILE'] }
+fetch-biomappings-repo = { cmd = [
+  'sops',
+  'exec-env',
+  '--same-process',
+  '--',
+  '$SECRET_FILE',
+  'git -C resources/biomappings fetch -- origin'
+] }
 refresh-keys = { depends-on = ['update-keys', 'rotate-keys'] }
 rotate-keys = { cmd = ['sops', 'rotate', '--in-place', '--', '$SECRET_FILE'] }
 up = { cmd = ['sops', 'exec-env', '--same-process', '--', '$SECRET_FILE', 'docker compose up'] }
@@ -181,12 +189,14 @@ printf -- '%s' "$PROJECT_NAME" | ssh -- "$SSH_DESTINATION" '\
 cmd = """
 git archive --prefix="$PROJECT_NAME/" -- HEAD | ssh -- "$SSH_DESTINATION" 'tar -x -C /data -f -'"""
 
-[tool.pixi.feature.secrets.tasks._remote-cp-systemd-app]
+[tool.pixi.feature.secrets.tasks._remote-cp-systemd]
 cmd = """
 printf -- '%s' "$PROJECT_NAME" | ssh -- "$SSH_DESTINATION" '\
   IFS= read -r -d "" PROJECT_NAME; \
   exec -- sudo -- cp -- \
     "/data/${PROJECT_NAME}/resources/systemd/biomappings-curation-app.service" \
+    "/data/${PROJECT_NAME}/resources/systemd/update-biomappings-and-redeploy-biomappings-curation-app.service" \
+    "/data/${PROJECT_NAME}/resources/systemd/update-biomappings-and-redeploy-biomappings-curation-app.timer" \
     /etc/systemd/system\
 '"""
 

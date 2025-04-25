@@ -4,8 +4,8 @@ WantedBy=multi-user.target
 [Service]
 Environment=HOSTNAME=biomappings-curation-app-lb-00cc5d7d789bc0c6.elb.us-east-1.amazonaws.com
 Environment=HTTPS_PORT=8443
-ExecStart=/usr/local/bin/pixi run up
-ExecStop=/usr/local/bin/pixi run down
+ExecStart=/usr/local/bin/pixi run -- up
+ExecStop=/usr/local/bin/pixi run -- down
 Group=ubuntu
 Restart=on-failure
 User=ubuntu

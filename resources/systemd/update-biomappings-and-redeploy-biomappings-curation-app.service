@@ -1,0 +1,16 @@
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+Environment=PROJECT_NAME=biomappings-curation-app
+ExecStart=/data/biomappings-curation-app/resources/systemd/update-biomappings-and-redeploy-biomappings-curation-app.sh
+Group=ubuntu
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/data/biomappings-curation-app
+
+[Unit]
+After=network-online.target
+Description=Update the biomappings repo and redeploy biomappings-curation-app.service
+Documentation=https://github.com/gyorilab/biomappings-curation-app
+Wants=network-online.target

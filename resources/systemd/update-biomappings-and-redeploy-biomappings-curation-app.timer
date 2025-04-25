@@ -1,0 +1,12 @@
+[Install]
+WantedBy=timers.target
+
+[Timer]
+AccuracySec=1s
+OnCalendar=*-*-* *:00/5:00
+Persistent=true
+RandomizedDelaySec=15s
+
+[Unit]
+Description=Timer for update-biomappings-and-redeploy-biomappings-curation-app.service
+Documentation=https://github.com/gyorilab/biomappings-curation-app
