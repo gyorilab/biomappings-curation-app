@@ -42,7 +42,7 @@ secrets = { features = ['secrets'], no-default-feature = true }
 mypy = { version = '>=1.15.0', extras = ['faster-cache'] }
 pre-commit = { version = '>=4.2.0' }
 pre-commit-hooks = { version = '>=5.0.0' }
-ruff = { version = '>=0.11.6' }
+ruff = { version = '>=0.11.7' }
 types-wtforms = { version = '>=3.2.1.20250401' }
 
 [tool.pixi.feature.lint.tasks]
