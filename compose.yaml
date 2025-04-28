@@ -51,7 +51,7 @@ services:
     environment:
       OAUTH2_PROXY_CLIENT_SECRET: '${OAUTH2_PROXY_CLIENT_SECRET}'
       OAUTH2_PROXY_COOKIE_SECRET: '${OAUTH2_PROXY_COOKIE_SECRET}'
-    image: 'quay.io/oauth2-proxy/oauth2-proxy:v7.8.2'
+    image: 'quay.io/oauth2-proxy/oauth2-proxy:v7.9.0'
     networks:
       - 'external'
     restart: 'unless-stopped'
