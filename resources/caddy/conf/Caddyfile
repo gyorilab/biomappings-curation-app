@@ -69,24 +69,21 @@
 	}
 }
 
-(tls_on_demand) {
-	tls {
-		on_demand
-		issuer acme {
-			# TODO: delete the "dir" directive after successful issuance from the LE staging endpoint.
-			dir https://acme-staging-v02.api.letsencrypt.org/directory
-			disable_http_challenge
-		}
-	}
-}
-
 biomappings-curation-app.localhost biomappings-curation-app-lb-00cc5d7d789bc0c6.elb.us-east-1.amazonaws.com {
 	tls internal
 	import backend
 }
 
 https:// {
-	import tls_on_demand
+	tls {
+		on_demand
+		issuer acme {
+			# TODO: delete the "dir" directive after successful issuance from the LE staging endpoint.
+			dir https://acme-staging-v02.api.letsencrypt.org/directory
+			profile tlsserver
+			disable_http_challenge
+		}
+	}
 	import backend
 }
 
