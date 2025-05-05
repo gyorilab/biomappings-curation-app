@@ -78,8 +78,6 @@ https:// {
 	tls {
 		on_demand
 		issuer acme {
-			# TODO: delete the "dir" directive after successful issuance from the LE staging endpoint.
-			dir https://acme-staging-v02.api.letsencrypt.org/directory
 			profile tlsserver
 			disable_http_challenge
 		}
