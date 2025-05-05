@@ -141,5 +141,4 @@ pixi run -- deploy
 
 ### Browse deployed app
 
-[Biomappings curation app
-(deployed)](https://biomappings-curation-app-lb-00cc5d7d789bc0c6.elb.us-east-1.amazonaws.com)
+[Biomappings curation app (deployed)](https://biomappings.indra.bio)
