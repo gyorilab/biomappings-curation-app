@@ -171,7 +171,7 @@ class Mapping(db.Model):  # type: ignore[name-defined]
 class State(BaseModel):
     """Contains the state for queries to the curation app."""
 
-    limit: int | None = 10
+    limit: int | None = 20
     offset: int | None = 0
     query: str | None = None
     source_query: str | None = None
@@ -189,7 +189,7 @@ class State(BaseModel):
     def from_flask_globals(cls) -> "State":
         """Get the state from the flask current request."""
         return State(
-            limit=flask.request.args.get("limit", type=int, default=10),
+            limit=flask.request.args.get("limit", type=int, default=20),
             offset=flask.request.args.get("offset", type=int, default=0),
             query=flask.request.args.get("query"),
             source_query=flask.request.args.get("source_query"),
