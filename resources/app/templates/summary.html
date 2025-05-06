@@ -26,9 +26,14 @@
                     </h5>
                     <div class="card-body">
                         <p>
-                            Curate predicted equivalences and related mappings between named
-                            biological entities that are not available from primary sources.
+                        <b>Biomappings</b> integrates predicted mappings between identifiers of biological entities from different resources. This is key to data integration across data sets that use different identifiers standards.</p> 
+                        <p>This website allows <b>reviewing and curating mappings</b> (marking them as correct or incorrect), focusing on mappings that otherwise aren't available from the primary resources in which they are defined, and therefore provide added value for data integration.
                         </p>
+                        <p>
+                        Start by <b>clicking on the resource</b> for which you want to browse and curate mappings. Each line in the table corresponds to one predicted mapping. <b>After reviewing the mapping, click one of the curation badges</b> on the right to confirm the mapping as correct, broad, narrow, incorrect, or uncertain. To perform curation, you need to <b>log in with your ORCID</b>.
+                        </p>
+                        <p>
+                        At any point, you can then <b>click on Publish pull request</b> which, in the background, submits your proposed curations as a pull request on GitHub (currently to https://github.com/manselmi/biomappings, later migrated to https://github.com/biopragmatics/biomappings).
                     </div>
                     <div>
                         {% set table_width = 6 %}

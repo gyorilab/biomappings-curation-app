@@ -809,8 +809,10 @@ def publish_pr():
     total_curated = len(true_mappings) + len(false_mappings) + len(unsure_mappings)
 
     head = f"{user_id}_{uuid.uuid4()}".replace(":", "_")
+    title = f"Curated {total_curated} mapping{'s' if total_curated > 1 else ''} via Biomappings web app"
     author = f"{user_id} <{AUTHOR_EMAIL}>"
-    commit_msg = f"Curated {total_curated} mapping{'s' if total_curated > 1 else ''} ({user_id})"
+    commit_msg = f"Curated {total_curated} mapping{'s' if total_curated > 1 else ''}"
+    body = "These mappings were curated on the Biomappings web app by [{user_id}](https://bioregistry.io/{user_id})."
 
     with TemporaryDirectory() as _tmp_path:
         tmp_path = Path(_tmp_path)
@@ -849,7 +851,7 @@ def publish_pr():
             try:
                 run(["git", "push", "--", "origin", head])
                 create_pull_request(
-                    client=client, base=BASE_BRANCH, head=head, title=head, body=commit_msg
+                    client=client, base=BASE_BRANCH, head=head, title=title, body=body
                 )
             except Exception:
                 delete_branch_if_exists(client=client, head=head)
