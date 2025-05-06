@@ -7,7 +7,6 @@ import operator
 import os
 import shutil
 import subprocess
-import urllib.parse
 import uuid
 from collections import Counter
 from collections.abc import Callable, Generator, Iterable, Mapping as MappingT
@@ -15,6 +14,7 @@ from copy import deepcopy
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
+from urllib.parse import quote_plus
 
 import bioregistry
 import flask
@@ -171,7 +171,7 @@ class Mapping(db.Model):  # type: ignore[name-defined]
 class State(BaseModel):
     """Contains the state for queries to the curation app."""
 
-    limit: int | None = 10
+    limit: int | None = 20
     offset: int | None = 0
     query: str | None = None
     source_query: str | None = None
@@ -189,7 +189,7 @@ class State(BaseModel):
     def from_flask_globals(cls) -> "State":
         """Get the state from the flask current request."""
         return State(
-            limit=flask.request.args.get("limit", type=int, default=10),
+            limit=flask.request.args.get("limit", type=int, default=20),
             offset=flask.request.args.get("offset", type=int, default=0),
             query=flask.request.args.get("query"),
             source_query=flask.request.args.get("source_query"),
@@ -231,7 +231,7 @@ def get_app(biomappings_path: Path) -> flask.Flask:
     app_.config["controller"] = controller
     flask_bootstrap.Bootstrap4(app_)
     app_.register_blueprint(blueprint)
-    app_.jinja_env.filters["quote_plus"] = urllib.parse.quote_plus
+    app_.jinja_env.filters["quote_plus"] = quote_plus
     app_.jinja_env.globals.update(controller=controller, url_for_state=url_for_state)
     app_.wsgi_app = ProxyFix(  # type: ignore[method-assign]
         app_.wsgi_app,
@@ -810,7 +810,14 @@ def publish_pr():
 
     head = f"{user_id}_{uuid.uuid4()}".replace(":", "_")
     author = f"{user_id} <{AUTHOR_EMAIL}>"
-    commit_msg = f"Curated {total_curated} mapping{'s' if total_curated > 1 else ''} ({user_id})"
+    commit_msg = (
+        f"Curated {total_curated} mapping{'s' if total_curated > 1 else ''} via Biomappings web app"
+    )
+    title = commit_msg
+    body = (
+        f"These mappings were curated via the Biomappings web app by "
+        f"[{user_id}](https://bioregistry.io/{quote_plus(user_id)})."
+    )
 
     with TemporaryDirectory() as _tmp_path:
         tmp_path = Path(_tmp_path)
@@ -849,7 +856,7 @@ def publish_pr():
             try:
                 run(["git", "push", "--", "origin", head])
                 create_pull_request(
-                    client=client, base=BASE_BRANCH, head=head, title=head, body=commit_msg
+                    client=client, base=BASE_BRANCH, head=head, title=title, body=body
                 )
             except Exception:
                 delete_branch_if_exists(client=client, head=head)
