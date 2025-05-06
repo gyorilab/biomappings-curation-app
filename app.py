@@ -7,7 +7,6 @@ import operator
 import os
 import shutil
 import subprocess
-import urllib.parse
 import uuid
 from collections import Counter
 from collections.abc import Callable, Generator, Iterable, Mapping as MappingT
@@ -15,6 +14,7 @@ from copy import deepcopy
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
+from urllib.parse import quote_plus
 
 import bioregistry
 import flask
@@ -231,7 +231,7 @@ def get_app(biomappings_path: Path) -> flask.Flask:
     app_.config["controller"] = controller
     flask_bootstrap.Bootstrap4(app_)
     app_.register_blueprint(blueprint)
-    app_.jinja_env.filters["quote_plus"] = urllib.parse.quote_plus
+    app_.jinja_env.filters["quote_plus"] = quote_plus
     app_.jinja_env.globals.update(controller=controller, url_for_state=url_for_state)
     app_.wsgi_app = ProxyFix(  # type: ignore[method-assign]
         app_.wsgi_app,
@@ -809,12 +809,15 @@ def publish_pr():
     total_curated = len(true_mappings) + len(false_mappings) + len(unsure_mappings)
 
     head = f"{user_id}_{uuid.uuid4()}".replace(":", "_")
-    title = (
+    author = f"{user_id} <{AUTHOR_EMAIL}>"
+    commit_msg = (
         f"Curated {total_curated} mapping{'s' if total_curated > 1 else ''} via Biomappings web app"
     )
-    author = f"{user_id} <{AUTHOR_EMAIL}>"
-    commit_msg = f"Curated {total_curated} mapping{'s' if total_curated > 1 else ''}"
-    body = "These mappings were curated on the Biomappings web app by [{user_id}](https://bioregistry.io/{user_id})."
+    title = commit_msg
+    body = (
+        f"These mappings were curated via the Biomappings web app by "
+        f"[{user_id}](https://bioregistry.io/{quote_plus(user_id)})."
+    )
 
     with TemporaryDirectory() as _tmp_path:
         tmp_path = Path(_tmp_path)
