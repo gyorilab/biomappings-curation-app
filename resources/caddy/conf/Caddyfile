@@ -69,8 +69,23 @@
 	}
 }
 
-biomappings-curation-app.localhost biomappings-curation-app-lb-00cc5d7d789bc0c6.elb.us-east-1.amazonaws.com {
+(alt-svc-local) {
+	header >Alt-Svc "h3=\":443\"; ma=2592000; persist=1, h2=\":443\"; ma=2592000; persist=1"
+}
+
+(alt-svc-aws) {
+	header >Alt-Svc "h2=\":443\"; ma=86400"
+}
+
+biomappings-curation-app.localhost {
 	tls internal
+	import alt-svc-local
+	import backend
+}
+
+biomappings-curation-app-lb-00cc5d7d789bc0c6.elb.us-east-1.amazonaws.com {
+	tls internal
+	import alt-svc-aws
 	import backend
 }
 
@@ -82,6 +97,7 @@ https:// {
 			disable_http_challenge
 		}
 	}
+	import alt-svc-aws
 	import backend
 }
 
