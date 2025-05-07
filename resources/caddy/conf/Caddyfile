@@ -50,9 +50,19 @@
 			# If oauth2-proxy returns a 401 status, redirect the client to the sign-in page.
 			@unauthorized status 401
 			handle_response @unauthorized {
-				@sign_in_required not path / /home
-				handle @sign_in_required {
-					redir * /oauth2/sign_in?rd={scheme}://{host}{uri}
+				# Don't be tempted to replace this route block with
+				#
+				#   redir * /oauth2/sign_in?rd={scheme}://{host}{uri}
+				#
+				# The redir directive DOES NOT URL-encode the uri placeholder, which will prematurely
+				# terminate the redirect URL if the original URI has more than one key-value pair in its
+				# query string.
+				#
+				# Work around this by rewriting the entire URI with the rewrite directive, which DOES
+				# URL-encode the uri placeholder.
+				route {
+					rewrite * /oauth2/sign_in?rd={scheme}://{host}{uri}
+					redir {uri}
 				}
 			}
 		}
