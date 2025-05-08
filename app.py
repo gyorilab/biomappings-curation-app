@@ -786,6 +786,19 @@ def add_mapping():
     return _go_home()
 
 
+@blueprint.route("/add_mapping")
+def _add_mapping():
+    """Handle when POST method becomes a GET after auth redirections."""
+    flask.flash(
+        (
+            "You must be logged in BEFORE adding a custom mapping. Please try adding the mapping "
+            "again."
+        ),
+        category="warning",
+    )
+    return _go_home()
+
+
 @blueprint.route("/clear_user_state")
 def clear_user_state():
     """Clear all user-specific state, then redirect to the home page."""
