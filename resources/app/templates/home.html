@@ -161,6 +161,7 @@
                     </tbody>
                 </table>
 
+                {% if controller.logged_in %}
                 <form class="form" method="POST" role="form" action="{{ url_for_state('.add_mapping', state) }}">
                     <table class="table" style="margin-bottom: 0">
                         <tr>
@@ -176,6 +177,11 @@
                         </tr>
                     </table>
                 </form>
+                {% else %}
+                <div class="card-body text-center">
+                    <p>You may add a custom mapping here after logging in.</p>
+                </div>
+                {% endif %}
 
                 <div class="card-footer text-center">
                     {% if 0 <= state.offset - state.limit %}
