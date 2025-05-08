@@ -24,7 +24,7 @@ reverse_proxy = true
 scope = 'openid'  # https://orcid.org/.well-known/openid-configuration
 set_xauthrequest = true
 skip_auth_routes = [
-  '\A/(\?|\z)',
-  '\A/home/?(\?|\z)',
+  'GET=\A/(\?|\z)',
+  'GET=\A/home/?(\?|\z)',
 ]
 skip_provider_button = true
