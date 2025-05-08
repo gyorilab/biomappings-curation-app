@@ -24,6 +24,7 @@ from flask import current_app
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm
 from httpx import (
+    URL,
     Auth,
     Client,
     Headers,
@@ -34,6 +35,7 @@ from httpx import (
     Timeout,
     codes,
 )
+from markupsafe import Markup
 from pydantic import BaseModel
 from sqlalchemy.orm import DeclarativeBase, Mapped, MappedAsDataclass, mapped_column
 from sqlalchemy.schema import MetaData, PrimaryKeyConstraint
@@ -54,12 +56,12 @@ AUTHOR_EMAIL = os.environ["COMMITTER_EMAIL"]
 BASE_BRANCH = os.environ["BASE_BRANCH"]
 COMMITTER_EMAIL = os.environ["COMMITTER_EMAIL"]
 COMMITTER_NAME = os.environ["COMMITTER_NAME"]
-GITHUB_API_BASE_URL = os.environ["GITHUB_API_BASE_URL"]
+GITHUB_API_BASE_URL = URL(os.environ["GITHUB_API_BASE_URL"])
 GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
 LOGIN_REQUIRED_MSG = "Login required"
 NUM_PROXIES = int(os.environ["NUM_PROXIES"])
 NUM_RETRIES = 3
-SQLALCHEMY_DATABASE_URI = os.environ["SQLALCHEMY_DATABASE_URI"]
+SQLALCHEMY_DATABASE_URI = URL(os.environ["SQLALCHEMY_DATABASE_URI"])
 TIMEOUT = datetime.timedelta(seconds=3)
 
 
@@ -91,11 +93,19 @@ BiomappingsApiClient = functools.partial(
 
 
 @stamina.retry(on=is_request_or_server_error, attempts=NUM_RETRIES)
-def create_pull_request(*, client: Client, base: str, head: str, title: str, body: str) -> None:
+def create_pull_request(*, client: Client, base: str, head: str, title: str, body: str) -> URL:
     response = client.post(
-        "/pulls", json={"base": base, "body": body, "head": head, "title": title}
+        "/pulls",
+        json={
+            "base": base,
+            "body": body,
+            "head": head,
+            "maintainer_can_modify": True,
+            "title": title,
+        },
     )
     response.raise_for_status()
+    return URL(response.json()["html_url"])
 
 
 @stamina.retry(on=is_request_or_server_error, attempts=NUM_RETRIES)
@@ -225,7 +235,7 @@ def get_app(biomappings_path: Path) -> flask.Flask:
     app_.config["SECRET_KEY"] = os.urandom(8)
     app_.config["SHOW_LINES"] = False
     app_.config["SHOW_RELATIONS"] = True
-    app_.config["SQLALCHEMY_DATABASE_URI"] = SQLALCHEMY_DATABASE_URI
+    app_.config["SQLALCHEMY_DATABASE_URI"] = str(SQLALCHEMY_DATABASE_URI)
     app_.config["WTF_CSRF_ENABLED"] = False
     controller = Controller(biomappings_path=biomappings_path)
     app_.config["controller"] = controller
@@ -868,14 +878,16 @@ def publish_pr():
         with BiomappingsApiClient() as client:
             try:
                 run(["git", "push", "--", "origin", head])
-                create_pull_request(
+                pull_request_url = create_pull_request(
                     client=client, base=BASE_BRANCH, head=head, title=title, body=body
                 )
             except Exception:
                 delete_branch_if_exists(client=client, head=head)
                 raise
 
-    return _go_clear_user_state()
+    CONTROLLER.clear_user_state(user_id)
+    flask.flash(Markup('PR submitted <a href="{href}">here</a>!').format(href=pull_request_url))
+    return _go_home()
 
 
 CORRECT = {"yup", "true", "t", "correct", "right", "close enough", "disco"}
@@ -907,11 +919,6 @@ def mark(line: int, value: str):
         CONTROLLER.mark(user_id, line, _normalize_mark(value))
         CONTROLLER.persist(user_id)
     return _go_home()
-
-
-def _go_clear_user_state():
-    state = State.from_flask_globals()
-    return flask.redirect(url_for_state(".clear_user_state", state))
 
 
 def _go_home():

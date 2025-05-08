@@ -1442,6 +1442,7 @@ packages:
   - libgcc-ng ==15.1.0=*_2
   - libgomp 15.1.0 h767d61c_2
   license: GPL-3.0-only WITH GCC-exception-3.1
+  license_family: GPL
   purls: []
   size: 829108
   timestamp: 1746642191935
@@ -1454,6 +1455,7 @@ packages:
   - libgcc-ng ==15.1.0=*_2
   - libgomp 15.1.0 he277a41_2
   license: GPL-3.0-only WITH GCC-exception-3.1
+  license_family: GPL
   purls: []
   size: 516718
   timestamp: 1746656727616
@@ -1463,6 +1465,7 @@ packages:
   depends:
   - libgcc 15.1.0 h767d61c_2
   license: GPL-3.0-only WITH GCC-exception-3.1
+  license_family: GPL
   purls: []
   size: 34586
   timestamp: 1746642200749
@@ -1472,6 +1475,7 @@ packages:
   depends:
   - libgcc 15.1.0 he277a41_2
   license: GPL-3.0-only WITH GCC-exception-3.1
+  license_family: GPL
   purls: []
   size: 34773
   timestamp: 1746656732548
@@ -1481,6 +1485,7 @@ packages:
   depends:
   - __glibc >=2.17,<3.0.a0
   license: GPL-3.0-only WITH GCC-exception-3.1
+  license_family: GPL
   purls: []
   size: 452635
   timestamp: 1746642113092
@@ -1488,6 +1493,7 @@ packages:
   sha256: 6362d457591144a4e50247ff60cb2655eb2cf4a7a99dde9e4d7c2d22af20a038
   md5: a28544b28961994eab37e1132a7dadcf
   license: GPL-3.0-only WITH GCC-exception-3.1
+  license_family: GPL
   purls: []
   size: 456053
   timestamp: 1746656635944
@@ -1720,6 +1726,7 @@ packages:
   - __glibc >=2.17,<3.0.a0
   - libgcc 15.1.0 h767d61c_2
   license: GPL-3.0-only WITH GCC-exception-3.1
+  license_family: GPL
   purls: []
   size: 3902355
   timestamp: 1746642227493
@@ -1729,6 +1736,7 @@ packages:
   depends:
   - libgcc 15.1.0 he277a41_2
   license: GPL-3.0-only WITH GCC-exception-3.1
+  license_family: GPL
   purls: []
   size: 3838578
   timestamp: 1746656751553
@@ -1738,6 +1746,7 @@ packages:
   depends:
   - libstdcxx 15.1.0 h8f9b012_2
   license: GPL-3.0-only WITH GCC-exception-3.1
+  license_family: GPL
   purls: []
   size: 34647
   timestamp: 1746642266826
@@ -1747,6 +1756,7 @@ packages:
   depends:
   - libstdcxx 15.1.0 h3f4de04_2
   license: GPL-3.0-only WITH GCC-exception-3.1
+  license_family: GPL
   purls: []
   size: 34860
   timestamp: 1746656784407
