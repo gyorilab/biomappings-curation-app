@@ -791,8 +791,8 @@ def _add_mapping():
     """Handle when POST method becomes a GET after auth redirections."""
     flask.flash(
         (
-            "You must be logged in BEFORE adding a custom mapping. Please try adding the mapping "
-            "again."
+            "It's likely your login credentials had expired before submitting your custom mapping. "
+            "Please try adding the mapping again."
         ),
         category="warning",
     )
