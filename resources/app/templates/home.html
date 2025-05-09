@@ -71,12 +71,12 @@
                 <table class="table table-striped table-hover table-sm">
                     <thead class="thead-light">
                     <tr>
-                        {% if show_lines %}
+                        {% if state.show_lines %}
                         <th class="text-right" scope="col">Line</th>
                         {% endif %}
                         <th scope="col">Source</th>
                         <th scope="col">Source Name</th>
-                        {% if show_relations %}
+                        {% if state.show_relations %}
                             <th scope="col">Relation</th>
                         {% endif %}
                         <th scope="col">Target</th>
@@ -92,7 +92,7 @@
                     <tbody>
                     {% for line, p in predictions %}
                         <tr>
-                            {% if show_lines %}
+                            {% if state.show_lines %}
                             <td class="text-right">{{ 1 + line }}</td>
                             {% endif %}
                             <td>
@@ -101,8 +101,12 @@
                                 </a>
                             </td>
                             <td>{{ p['source name'] }}</td>
-                            {% if show_relations %}
-                                <td>{{ p['relation'] }}</td>
+                            {% if state.show_relations %}
+                            <td>
+                                <a data-toggle="tooltip" title="{{ p['relation'] }}">
+                                    <i class="fa-solid {{ 'fa-equals' if p['relation'] == 'skos:exactMatch' else 'fa-wave-square' }}"></i>
+                                </a>
+                            </td>
                             {% endif %}
                             <td>
                                 <a href="{{ controller.get_url(p['target prefix'], p['target identifier']) }}">
