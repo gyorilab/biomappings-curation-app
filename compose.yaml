@@ -12,13 +12,17 @@ networks:
 services:
 
   caddy:
+    build:
+      args:
+        CADDY_EXTRA_PLACEHOLDERS_VERSION: 'v0.10.0'
+        CADDY_VERSION: '2.10.0'
+      dockerfile: './resources/caddy/caddy.dockerfile'
     depends_on:
       - 'app'
       - 'oauth2-proxy'
     env_file:
       - path: './env/common.env'
       - path: './env/caddy.env'
-    image: 'docker.io/library/caddy:2.10.0'
     networks:
       - 'external'
     ports:

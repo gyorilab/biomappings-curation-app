@@ -117,6 +117,7 @@ deploy = { depends-on = [
   '_remote-cp-repo',
   '_remote-clone-biomappings-repo',
   '_remote-rm-docker-image-app',
+  '_remote-rm-docker-image-caddy',
   '_remote-rm-docker-volume-postgres',
   '_remote-cp-systemd',
   '_remote-systemctl-daemon-reload',
@@ -205,6 +206,12 @@ printf -- '%s' "$PROJECT_NAME" | ssh -- "$SSH_DESTINATION" '\
 cmd = """
 printf -- '%s' "$PROJECT_NAME" | ssh -- "$SSH_DESTINATION" '\
   IFS= read -r -d "" PROJECT_NAME; exec -- docker image rm -f -- "${PROJECT_NAME}-app:latest"\
+'"""
+
+[tool.pixi.feature.secrets.tasks._remote-rm-docker-image-caddy]
+cmd = """
+printf -- '%s' "$PROJECT_NAME" | ssh -- "$SSH_DESTINATION" '\
+  IFS= read -r -d "" PROJECT_NAME; exec -- docker image rm -f -- "${PROJECT_NAME}-caddy:latest"\
 '"""
 
 [tool.pixi.feature.secrets.tasks._remote-rm-docker-volume-postgres]
