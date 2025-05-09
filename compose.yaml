@@ -82,6 +82,7 @@ services:
     command:
       - 'gunicorn'
       - '--bind=0.0.0.0:5000'
+      - '--limit-request-field_size=32760'
       - '--worker-class=gthread'
       - '--workers=4'
       - '--'
