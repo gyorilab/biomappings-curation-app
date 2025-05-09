@@ -21,10 +21,6 @@
 }
 
 (handlers) {
-	extra_placeholders {
-		disable_loadavg_placeholders
-	}
-
 	handle /oauth2/* {
 		reverse_proxy http://oauth2-proxy:4180 {
 			# oauth2-proxy requires the X-Real-IP and X-Forwarded-{Proto,Host,Uri} headers. The
@@ -54,6 +50,10 @@
 			# If oauth2-proxy returns a 401 status, redirect the client to the sign-in page.
 			@unauthorized status 401
 			handle_response @unauthorized {
+				extra_placeholders {
+					disable_loadavg_placeholders
+				}
+
 				@sign_in_required not {
 					method GET
 					path / /home
