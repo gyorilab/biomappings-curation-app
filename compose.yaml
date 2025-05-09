@@ -64,7 +64,7 @@ services:
     env_file:
       - path: './env/common.env'
       - path: './env/postgres.env'
-    image: 'docker.io/library/postgres:17.4'
+    image: 'docker.io/library/postgres:17.5'
     networks:
       - 'internal'
     restart: 'unless-stopped'
