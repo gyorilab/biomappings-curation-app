@@ -13,22 +13,31 @@
 	on_demand_tls {
 		ask http://localhost:9001
 	}
-	servers {
-		trusted_proxies static {$AWS_VPC_CIDR}
-		trusted_proxies_strict
+	servers :443 {
+		name https
+		listener_wrappers {
+			proxy_protocol {
+				allow 192.168.0.0/16 172.16.0.0/12 10.0.0.0/8 127.0.0.0/8 fd00::/8 ::1/128
+				fallback_policy reject
+			}
+			tls
+		}
+		protocols h1 h2
 		strict_sni_host on
 	}
 }
 
 (handlers) {
+	header >Alt-Svc "h2=\":443\"; ma=86400"
+
 	handle /oauth2/* {
 		reverse_proxy http://oauth2-proxy:4180 {
-			# oauth2-proxy requires the X-Real-IP and X-Forwarded-{Proto,Host,Uri} headers. The
+			# oauth2-proxy requires the X-Forwarded-{Proto,Host,Uri} and X-Real-IP headers. The
 			# reverse_proxy directive automatically sets X-Forwarded-{For,Proto,Host} headers.
 			#
 			# https://caddyserver.com/docs/caddyfile/directives/reverse_proxy#defaults
-			header_up X-Real-IP {remote_host}
 			header_up X-Forwarded-Uri {uri}
+			header_up X-Real-IP {remote_host}
 		}
 	}
 
@@ -36,7 +45,7 @@
 		forward_auth http://oauth2-proxy:4180 {
 			uri /oauth2/auth
 
-			# oauth2-proxy requires the X-Real-IP and X-Forwarded-{Proto,Host,Uri} headers. The
+			# oauth2-proxy requires the X-Forwarded-{Proto,Host,Uri} and X-Real-IP headers. The
 			# forward_auth directive automatically sets the X-Forwarded-{For,Proto,Host,Method,Uri}
 			# headers.
 			#
@@ -45,20 +54,18 @@
 
 			# If needed, you can copy headers from the oauth2-proxy response to the request sent to the
 			# upstream. Make sure to configure the --set-xauthrequest flag to enable this feature.
-			copy_headers X-Auth-Request-Email X-Auth-Request-Groups X-Auth-Request-Preferred-Username X-Auth-Request-User
+			copy_headers X-Auth-Request-User
 
-			# If oauth2-proxy returns a 401 status, redirect the client to the sign-in page.
-			@unauthorized status 401
-			handle_response @unauthorized {
+			# If oauth2-proxy does not return a 2xx status, redirect the client to the sign-in page. The
+			# forward_auth directive automatically configures a "status 2xx" response handler, so this
+			# response handler will handle all other status codes.
+			#
+			# https://caddyserver.com/docs/caddyfile/directives/forward_auth#expanded-form
+			handle_response {
 				extra_placeholders {
 					disable_loadavg_placeholders
 				}
-
-				@sign_in_required not {
-					method GET
-					path / /home
-				}
-				redir @sign_in_required /oauth2/sign_in?rd={extra.http.request.url.query_escaped}
+				redir * /oauth2/sign_in?rd={extra.http.request.url.query_escaped}
 			}
 		}
 
@@ -74,23 +81,13 @@
 	}
 }
 
-(alt-svc-local) {
-	header >Alt-Svc "h3=\":443\"; ma=2592000; persist=1, h2=\":443\"; ma=2592000; persist=1"
-}
-
-(alt-svc-aws) {
-	header >Alt-Svc "h2=\":443\"; ma=86400"
-}
-
 biomappings-curation-app.localhost {
 	tls internal
-	import alt-svc-local
 	import handlers
 }
 
 biomappings-curation-app-lb-00cc5d7d789bc0c6.elb.us-east-1.amazonaws.com {
 	tls internal
-	import alt-svc-aws
 	import handlers
 }
 
@@ -102,7 +99,6 @@ https:// {
 			disable_http_challenge
 		}
 	}
-	import alt-svc-aws
 	import handlers
 }
 

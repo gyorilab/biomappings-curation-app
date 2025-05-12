@@ -31,11 +31,6 @@ services:
         protocol: 'tcp'
         published: '${HTTPS_PORT:-443}'
         target: 443
-      - app_protocol: 'https'
-        mode: 'host'
-        protocol: 'udp'
-        published: '${HTTPS_PORT:-443}'
-        target: 443
     restart: 'unless-stopped'
     volumes:
       - source: './resources/caddy/conf'

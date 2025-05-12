@@ -27,7 +27,7 @@ flask-wtf = { version = '>=1.2.2' }
 gunicorn = { version = '>=23.0.0', extras = ['gthread'] }
 httpx = { version = '>=0.28.1', extras = ['http2'] }
 markupsafe = { version = '>=3.0.2' }
-psycopg = { version = '>=3.2.7', extras = ['binary'] }
+psycopg = { version = '>=3.2.8', extras = ['binary'] }
 pydantic = { version = '>=2.11.4' }
 sqlalchemy = { version = '>=2.0.40' }
 stamina = { version = '>=25.1.0' }
