@@ -37,6 +37,7 @@ from httpx import (
 )
 from markupsafe import Markup
 from pydantic import BaseModel
+from sqlalchemy.dialects.postgresql import insert as postgres_upsert
 from sqlalchemy.orm import DeclarativeBase, Mapped, MappedAsDataclass, mapped_column
 from sqlalchemy.schema import MetaData, PrimaryKeyConstraint
 from werkzeug.local import LocalProxy
@@ -176,6 +177,16 @@ class Mapping(db.Model):  # type: ignore[name-defined]
             "source", "source_prefix", "source_identifier", "target_prefix", "target_identifier"
         ),
     )
+
+
+class PublishedMark(db.Model):  # type: ignore[name-defined]
+    __tablename__ = "published_mark"
+
+    user_id: Mapped[str]
+    line: Mapped[int]
+    value: Mapped[str]
+
+    __table_args__ = (PrimaryKeyConstraint("user_id", "line"),)
 
 
 class State(BaseModel):
@@ -650,7 +661,24 @@ class Controller:
 
     @staticmethod
     def clear_user_state(user_id: str) -> None:
-        """Clear all user-specific state."""
+        """Clear user-controlled state."""
+        db.session.query(Mark).filter(Mark.user_id == user_id).delete()
+        db.session.query(UserMeta).filter(UserMeta.user_id == user_id).delete()
+        db.session.query(Mapping).filter(Mapping.source == user_id).delete()
+        db.session.commit()
+
+    @staticmethod
+    def update_user_state_after_publish(user_id: str) -> None:
+        """Update user-specific state after publishing PR."""
+        marks = db.session.query(Mark).filter(Mark.user_id == user_id)
+        stmt = postgres_upsert(PublishedMark).values(
+            [{"user_id": mark.user_id, "line": mark.line, "value": mark.value} for mark in marks]
+        )
+        stmt = stmt.on_conflict_do_update(
+            index_elements=[PublishedMark.user_id, PublishedMark.line],
+            set_={"value": stmt.excluded.value},
+        )
+        db.session.execute(stmt)
         db.session.query(Mark).filter(Mark.user_id == user_id).delete()
         db.session.query(UserMeta).filter(UserMeta.user_id == user_id).delete()
         db.session.query(Mapping).filter(Mapping.source == user_id).delete()
@@ -706,6 +734,12 @@ class Controller:
     @property
     def logged_in(self) -> bool:
         return self.user_id is not None
+
+    def is_published(self, line: int) -> bool:
+        if (user_id := self.user_id) is None:
+            return False
+        published_mark = db.session.get(PublishedMark, (user_id, line))
+        return published_mark is not None
 
 
 CONTROLLER: Controller = LocalProxy(lambda: current_app.config["controller"])  # type: ignore[assignment]
@@ -885,7 +919,7 @@ def publish_pr():
                 delete_branch_if_exists(client=client, head=head)
                 raise
 
-    CONTROLLER.clear_user_state(user_id)
+    CONTROLLER.update_user_state_after_publish(user_id)
     flask.flash(Markup('PR submitted <a href="{href}">here</a>!').format(href=pull_request_url))
     return _go_home()
 

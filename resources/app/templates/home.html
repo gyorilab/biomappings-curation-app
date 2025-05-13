@@ -91,7 +91,11 @@
                     </thead>
                     <tbody>
                     {% for line, p in predictions %}
+                        {% if controller.is_published(line) %}
+                        <tr class="table-warning" data-toggle="tooltip" title="You have previously published a pull request curating this mapping.">
+                        {% else %}
                         <tr>
+                        {% endif %}
                             {% if state.show_lines %}
                             <td class="text-right">{{ 1 + line }}</td>
                             {% endif %}
