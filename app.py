@@ -659,16 +659,12 @@ class Controller:
         db.session.add_all(mappings)
         db.session.commit()
 
-    @staticmethod
-    def clear_user_state(user_id: str) -> None:
+    def clear_user_state(self, user_id: str) -> None:
         """Clear user-controlled state."""
-        db.session.query(Mark).filter(Mark.user_id == user_id).delete()
-        db.session.query(UserMeta).filter(UserMeta.user_id == user_id).delete()
-        db.session.query(Mapping).filter(Mapping.source == user_id).delete()
+        self._clear_user_state_no_commit(user_id)
         db.session.commit()
 
-    @staticmethod
-    def update_user_state_after_publish(user_id: str) -> None:
+    def update_user_state_after_publish(self, user_id: str) -> None:
         """Update user-specific state after publishing PR."""
         marks = db.session.query(Mark).filter(Mark.user_id == user_id)
         stmt = postgres_upsert(PublishedMark).values(
@@ -679,10 +675,15 @@ class Controller:
             set_={"value": stmt.excluded.value},
         )
         db.session.execute(stmt)
+        self._clear_user_state_no_commit(user_id)
+        db.session.commit()
+
+    @staticmethod
+    def _clear_user_state_no_commit(user_id: str) -> None:
+        """Clear user-controlled state, but do not commit."""
         db.session.query(Mark).filter(Mark.user_id == user_id).delete()
         db.session.query(UserMeta).filter(UserMeta.user_id == user_id).delete()
         db.session.query(Mapping).filter(Mapping.source == user_id).delete()
-        db.session.commit()
 
     def get_all_mappings(self, user_id: str):
         true_mappings = []
