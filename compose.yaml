@@ -75,7 +75,7 @@ services:
   app:
     build:
       args:
-        PIXI_VERSION: '0.46.0'
+        PIXI_VERSION: '0.47.0'
       context: '.'
       dockerfile: './resources/app/app.dockerfile'
     command:
