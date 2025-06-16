@@ -1,5 +1,7 @@
 """Web curation interface for :mod:`biomappings`."""
 
+from __future__ import annotations
+
 import datetime
 import functools
 import itertools
@@ -9,17 +11,17 @@ import shutil
 import subprocess
 import uuid
 from collections import Counter
-from collections.abc import Callable, Generator, Iterable, Mapping as MappingT
+from collections.abc import Callable, Generator, Iterable, Iterator, Mapping as MappingType
 from copy import deepcopy
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any
+from typing import Any, Literal, cast, get_args
 from urllib.parse import quote_plus
 
-import bioregistry
 import flask
 import flask_bootstrap
 import stamina
+import werkzeug
 from flask import current_app
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm
@@ -36,7 +38,7 @@ from httpx import (
     codes,
 )
 from markupsafe import Markup
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 from sqlalchemy.dialects.postgresql import insert as postgres_upsert
 from sqlalchemy.orm import DeclarativeBase, Mapped, MappedAsDataclass, mapped_column
 from sqlalchemy.schema import MetaData, PrimaryKeyConstraint
@@ -51,7 +53,10 @@ from biomappings.resources import (
     load_predictions,
     write_predictions,
 )
-from biomappings.utils import check_valid_prefix_id, get_curie
+from bioregistry import NormalizedNamableReference, get_resource
+
+MarkType = Literal["correct", "incorrect", "unsure", "broad", "narrow"]
+PredictionDict = MappingType[str, Any]
 
 AUTHOR_EMAIL = os.environ["COMMITTER_EMAIL"]
 BASE_BRANCH = os.environ["BASE_BRANCH"]
@@ -60,6 +65,7 @@ COMMITTER_NAME = os.environ["COMMITTER_NAME"]
 GITHUB_API_BASE_URL = URL(os.environ["GITHUB_API_BASE_URL"])
 GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
 LOGIN_REQUIRED_MSG = "Login required"
+MARKS: set[MarkType] = set(get_args(MarkType))
 NUM_PROXIES = int(os.environ["NUM_PROXIES"])
 NUM_RETRIES = 3
 SQLALCHEMY_DATABASE_URI = URL(os.environ["SQLALCHEMY_DATABASE_URI"])
@@ -120,6 +126,10 @@ def delete_branch_if_exists(*, client: Client, head: str) -> None:
     response.raise_for_status()
 
 
+def startswith(string: str, prefix: str) -> bool:
+    return string.startswith(prefix)
+
+
 class SQLAlchemyBase(DeclarativeBase, MappedAsDataclass):
     metadata = MetaData(
         naming_convention={
@@ -159,22 +169,20 @@ class Mapping(db.Model):  # type: ignore[name-defined]
 
     kind: Mapped[str]
     line: Mapped[int | None]
-    source_prefix: Mapped[str]
-    source_identifier: Mapped[str]
-    source_name: Mapped[str]
-    relation: Mapped[str]
-    target_prefix: Mapped[str]
-    target_identifier: Mapped[str]
-    target_name: Mapped[str]
-    source: Mapped[str]
-    type: Mapped[str]
-    prediction_type: Mapped[str | None]
-    prediction_source: Mapped[str | None]
-    prediction_confidence: Mapped[str | None]
+    subject_id: Mapped[str]
+    subject_label: Mapped[str]
+    predicate_id: Mapped[str]
+    object_id: Mapped[str]
+    object_label: Mapped[str]
+    author_id: Mapped[str]
+    mapping_justification: Mapped[str]
+    mapping_tool: Mapped[str | None]
+    confidence: Mapped[str | None]
+    predicate_modifier: Mapped[str | None]
 
     __table_args__ = (
         PrimaryKeyConstraint(
-            "source", "source_prefix", "source_identifier", "target_prefix", "target_identifier"
+            "author_id", "subject_id", "subject_label", "object_id", "object_label"
         ),
     )
 
@@ -207,7 +215,7 @@ class State(BaseModel):
     show_lines: bool = False
 
     @classmethod
-    def from_flask_globals(cls) -> "State":
+    def from_flask_globals(cls) -> State:
         """Get the state from the flask current request."""
         return State(
             limit=flask.request.args.get("limit", type=int, default=20),
@@ -227,15 +235,15 @@ class State(BaseModel):
 
 
 def _get_bool_arg(name: str, default: bool | None = None) -> bool | None:
-    value = flask.request.args.get(name)
+    value = flask.request.args.get(name, type=str)
     if value is not None:
         return value.lower() in {"true", "t"}
     return default
 
 
-def url_for_state(endpoint, state: State, **kwargs) -> str:
+def url_for_state(endpoint, state: State, **kwargs: Any) -> str:
     """Get the URL for an endpoint based on the state class."""
-    vv = state.dict(exclude_none=True, exclude_defaults=True)
+    vv = state.model_dump(exclude_none=True, exclude_defaults=True)
     vv.update(kwargs)  # make sure stuff explicitly set overrides state
     return flask.url_for(endpoint, **vv)
 
@@ -277,10 +285,12 @@ class Controller:
         """
         self.biomappings_path = biomappings_path
         self._predictions = load_predictions(
-            path=biomappings_path.joinpath("src", "biomappings", "resources", "predictions.tsv"),
+            path=biomappings_path.joinpath(
+                "src", "biomappings", "resources", "predictions.sssom.tsv"
+            ),
         )
 
-    def predictions_from_state(self, state: State) -> Iterable[tuple[int, MappingT[str, Any]]]:
+    def predictions_from_state(self, state: State) -> Iterable[tuple[int, PredictionDict]]:
         """Iterate over predictions from a state instance."""
         return self.predictions(
             offset=state.offset,
@@ -312,7 +322,7 @@ class Controller:
         same_text: bool | None = None,
         provenance: str | None = None,
         user_id: str | None = None,
-    ) -> Iterable[tuple[int, MappingT[str, Any]]]:
+    ) -> Iterable[tuple[int, PredictionDict]]:
         """Iterate over predictions.
 
         :param offset: If given, offset the iteration by this number
@@ -419,45 +429,39 @@ class Controller:
         same_text: bool | None = None,
         provenance: str | None = None,
         user_id: str | None = None,
-    ):
-        it: Iterable[tuple[int, MappingT[str, Any]]] = enumerate(self._predictions)
+    ) -> Iterator[tuple[int, PredictionDict]]:
+        it: Iterable[tuple[int, PredictionDict]] = enumerate(self._predictions)
 
         if query is not None:
             it = self._help_filter(
                 query,
                 it,
                 {
-                    "source prefix",
-                    "source identifier",
-                    "source name",
-                    "target prefix",
-                    "target identifier",
-                    "target name",
-                    "source",
+                    "subject_id",
+                    "subject_label",
+                    "object_id",
+                    "object_label",
+                    "mapping_tool",
                 },
             )
         if source_prefix is not None:
             it = self._help_filter(
-                source_prefix, it, {"source prefix"}, op_element_query=operator.eq
+                f"{source_prefix}:", it, {"subject_id"}, op_element_query=startswith
             )
         if source_query is not None:
-            it = self._help_filter(
-                source_query, it, {"source prefix", "source identifier", "source name"}
-            )
+            it = self._help_filter(source_query, it, {"subject_id", "subject_label"})
         if target_query is not None:
-            it = self._help_filter(
-                target_query, it, {"target prefix", "target identifier", "target name"}
-            )
+            it = self._help_filter(target_query, it, {"object_id", "object_label"})
         if target_prefix is not None:
             it = self._help_filter(
-                target_prefix, it, {"target prefix"}, op_element_query=operator.eq
+                f"{target_prefix}:", it, {"object_id"}, op_element_query=startswith
             )
         if prefix is not None:
             it = self._help_filter(
-                prefix, it, {"source prefix", "target prefix"}, op_element_query=operator.eq
+                f"{prefix}:", it, {"subject_id", "object_id"}, op_element_query=startswith
             )
         if provenance is not None:
-            it = self._help_filter(provenance, it, {"source"})
+            it = self._help_filter(provenance, it, {"mapping_tool"})
 
         if sort is not None:
             if sort == "desc":
@@ -465,18 +469,16 @@ class Controller:
             elif sort == "asc":
                 it = iter(sorted(it, key=lambda l_p: l_p[1]["confidence"], reverse=False))
             elif sort == "object":
-                it = iter(
-                    sorted(
-                        it, key=lambda l_p: (l_p[1]["target prefix"], l_p[1]["target identifier"])
-                    )
-                )
+                it = iter(sorted(it, key=lambda l_p: l_p[1]["target_id"]))
+            else:
+                raise ValueError
 
         if same_text:
             it = (
                 (line, prediction)
                 for line, prediction in it
-                if prediction["source name"].casefold() == prediction["target name"].casefold()
-                and prediction["relation"] == "skos:exactMatch"
+                if prediction["subject_label"].casefold() == prediction["object_label"].casefold()
+                and prediction["predicate_id"] == "skos:exactMatch"
             )
 
         marked = set()
@@ -493,34 +495,19 @@ class Controller:
     @staticmethod
     def _help_filter(
         query: str,
-        it,
+        it: Iterable[tuple[int, PredictionDict]],
         elements: set[str],
         op_element_query: Callable[[str, str], bool] = operator.contains,
     ):
         query = query.casefold()
-        return (
-            (line, prediction)
-            for line, prediction in it
-            if any(op_element_query(prediction[element].casefold(), query) for element in elements)
-        )
-
-    @staticmethod
-    def get_curie(prefix: str, identifier: str) -> str:
-        """Return CURIE for a given prefix and identifier."""
-        return get_curie(prefix, identifier)
-
-    @classmethod
-    def get_url(cls, prefix: str, identifier: str) -> str:
-        """Return URL for a given prefix and identifier."""
-        url = bioregistry.get_bioregistry_iri(prefix, identifier)
-        if url is None:
-            raise TypeError
-        return url
+        for line, prediction in it:
+            if any(op_element_query(prediction[element].casefold(), query) for element in elements):
+                yield line, prediction
 
     @classmethod
     def get_prefix_display_name(cls, prefix: str) -> str:
         """Return display name for a given prefix."""
-        resource = bioregistry.get_resource(prefix)
+        resource = get_resource(prefix)
         if resource is None:
             raise TypeError
         if (name := resource.get_name()) is not None:
@@ -530,7 +517,7 @@ class Controller:
     @classmethod
     def get_logo_url(cls, prefix: str) -> str | None:
         """Return logo URL for a given prefix."""
-        resource = bioregistry.get_resource(prefix)
+        resource = get_resource(prefix)
         if resource is None:
             raise TypeError
         return resource.get_logo()
@@ -543,8 +530,7 @@ class Controller:
             mark_count = db.session.query(Mark).filter(Mark.user_id == user_id).count()
         return len(self._predictions) - mark_count
 
-    @staticmethod
-    def mark(user_id: str, line: int, value: str) -> None:
+    def mark(self, user_id: str, line: int, value: MarkType) -> None:
         """Mark the given equivalency as correct.
 
         :param user_id: Authenticated user ID
@@ -552,61 +538,44 @@ class Controller:
         :param value: Value to mark the prediction with
         :raises ValueError: if an invalid value is used
         """
+        if line > len(self._predictions):
+            msg = (
+                f"given line {line} is larger than the number of predictions "
+                f"{len(self._predictions):,}"
+            )
+            raise IndexError(msg)
         mark_ = db.session.get(Mark, (user_id, line))
         if mark_ is None:
             user_meta = db.session.get(UserMeta, user_id) or UserMeta(user_id=user_id)
             user_meta.total_curated += 1
             db.session.add(user_meta)
-        if value not in {"correct", "incorrect", "unsure", "broad", "narrow"}:
-            raise ValueError
+        if value not in MARKS:
+            msg = f"illegal mark value given: {value}. Should be one of {MARKS}"
+            raise ValueError(msg)
         db.session.add(Mark(user_id=user_id, line=line, value=value))
         db.session.commit()
 
     @staticmethod
     def add_mapping(
-        source_prefix: str,
-        source_id: str,
-        source_name: str,
-        target_prefix: str,
-        target_id: str,
-        target_name: str,
+        subject: NormalizedNamableReference,
+        obj: NormalizedNamableReference,
         user_id: str,
     ) -> None:
         """Add manually curated new mappings."""
-        try:
-            check_valid_prefix_id(source_prefix, source_id)
-        except ValueError as e:
-            flask.flash(
-                f"Problem with source CURIE {source_prefix}:{source_id}: {e.__class__.__name__}",
-                category="warning",
-            )
-            return
-
-        try:
-            check_valid_prefix_id(target_prefix, target_id)
-        except ValueError as e:
-            flask.flash(
-                f"Problem with target CURIE {target_prefix}:{target_id}: {e.__class__.__name__}",
-                category="warning",
-            )
-            return
-
         db.session.add(
             Mapping(
                 kind="correct",
                 line=None,
-                source_prefix=source_prefix,
-                source_identifier=source_id,
-                source_name=source_name,
-                relation="skos:exactMatch",
-                target_prefix=target_prefix,
-                target_identifier=target_id,
-                target_name=target_name,
-                source=user_id,
-                type="manual",
-                prediction_type=None,
-                prediction_source=None,
-                prediction_confidence=None,
+                subject_id=subject.curie,
+                subject_label=subject.name,
+                predicate_id="skos:exactMatch",
+                object_id=obj.curie,
+                object_label=obj.name,
+                author_id=user_id,
+                mapping_justification="semapv:ManualMappingCuration",
+                mapping_tool=None,
+                confidence=None,
+                predicate_modifier=None,
             )
         )
 
@@ -621,7 +590,7 @@ class Controller:
         marks = dict(
             db.session.query(Mark.line, Mark.value)
             .filter(Mark.user_id == user_id)
-            .outerjoin(Mapping, (Mark.user_id == Mapping.source) & (Mark.line == Mapping.line))
+            .outerjoin(Mapping, (Mark.user_id == Mapping.author_id) & (Mark.line == Mapping.line))
             .filter(Mapping.line.is_(None))
         )
         mappings = []
@@ -632,27 +601,30 @@ class Controller:
             # note these go backwards because of the way they are read
             if value == "broad":
                 value = "correct"  # noqa: PLW2901
-                prediction["relation"] = "skos:narrowMatch"
+                prediction["predicate_id"] = "skos:narrowMatch"
             elif value == "narrow":
                 value = "correct"  # noqa: PLW2901
-                prediction["relation"] = "skos:broadMatch"
+                prediction["predicate_id"] = "skos:broadMatch"
+
+            if value != "incorrect":
+                prediction["predicate_modifier"] = ""
+            else:
+                prediction["predicate_modifier"] = "Not"
 
             mappings.append(
                 Mapping(
                     kind=value,
                     line=line,
-                    source_prefix=prediction["source prefix"],
-                    source_identifier=prediction["source identifier"],
-                    source_name=prediction["source name"],
-                    relation=prediction["relation"],
-                    target_prefix=prediction["target prefix"],
-                    target_identifier=prediction["target identifier"],
-                    target_name=prediction["target name"],
-                    source=user_id,
-                    type="semapv:MappingCuration",
-                    prediction_type=prediction["type"],
-                    prediction_source=prediction["source"],
-                    prediction_confidence=prediction["confidence"],
+                    subject_id=prediction["subject_id"],
+                    subject_label=prediction["subject_label"],
+                    predicate_id=prediction["predicate_id"],
+                    object_id=prediction["object_id"],
+                    object_label=prediction["object_label"],
+                    author_id=user_id,
+                    mapping_justification="semapv:ManualMappingCuration",
+                    mapping_tool=prediction["mapping_tool"],
+                    confidence=prediction["confidence"],
+                    predicate_modifier=prediction["predicate_modifier"],
                 )
             )
 
@@ -666,15 +638,18 @@ class Controller:
 
     def update_user_state_after_publish(self, user_id: str) -> None:
         """Update user-specific state after publishing PR."""
-        marks = db.session.query(Mark).filter(Mark.user_id == user_id)
-        stmt = postgres_upsert(PublishedMark).values(
-            [{"user_id": mark.user_id, "line": mark.line, "value": mark.value} for mark in marks]
-        )
-        stmt = stmt.on_conflict_do_update(
-            index_elements=[PublishedMark.user_id, PublishedMark.line],
-            set_={"value": stmt.excluded.value},
-        )
-        db.session.execute(stmt)
+        if marks := db.session.query(Mark).filter(Mark.user_id == user_id).all():
+            stmt = postgres_upsert(PublishedMark).values(
+                [
+                    {"user_id": mark.user_id, "line": mark.line, "value": mark.value}
+                    for mark in marks
+                ]
+            )
+            stmt = stmt.on_conflict_do_update(
+                index_elements=[PublishedMark.user_id, PublishedMark.line],
+                set_={"value": stmt.excluded.value},
+            )
+            db.session.execute(stmt)
         self._clear_user_state_no_commit(user_id)
         db.session.commit()
 
@@ -683,7 +658,7 @@ class Controller:
         """Clear user-controlled state, but do not commit."""
         db.session.query(Mark).filter(Mark.user_id == user_id).delete()
         db.session.query(UserMeta).filter(UserMeta.user_id == user_id).delete()
-        db.session.query(Mapping).filter(Mapping.source == user_id).delete()
+        db.session.query(Mapping).filter(Mapping.author_id == user_id).delete()
 
     def get_all_mappings(self, user_id: str):
         true_mappings = []
@@ -691,22 +666,20 @@ class Controller:
         unsure_mappings = []
         marked = set()
 
-        for mapping in db.session.query(Mapping).filter(Mapping.source == user_id):
+        for mapping in db.session.query(Mapping).filter(Mapping.author_id == user_id):
             kind = mapping.kind
             line = mapping.line
             dict_ = {
-                "source prefix": mapping.source_prefix,
-                "source identifier": mapping.source_identifier,
-                "source name": mapping.source_name,
-                "relation": mapping.relation,
-                "target prefix": mapping.target_prefix,
-                "target identifier": mapping.target_identifier,
-                "target name": mapping.target_name,
-                "source": mapping.source,
-                "type": mapping.type,
-                "prediction_type": mapping.prediction_type,
-                "prediction_source": mapping.prediction_source,
-                "prediction_confidence": mapping.prediction_confidence,
+                "subject_id": mapping.subject_id,
+                "subject_label": mapping.subject_label,
+                "predicate_id": mapping.predicate_id,
+                "object_id": mapping.object_id,
+                "object_label": mapping.object_label,
+                "mapping_justification": mapping.mapping_justification,
+                "author_id": mapping.author_id,
+                "mapping_tool": mapping.mapping_tool,
+                "confidence": mapping.confidence,
+                "predicate_modifier": mapping.predicate_modifier,
             }
             if kind == "correct":
                 true_mappings.append(dict_)
@@ -743,26 +716,42 @@ class Controller:
         return published_mark is not None
 
 
-CONTROLLER: Controller = LocalProxy(lambda: current_app.config["controller"])  # type: ignore[assignment]
+CONTROLLER: Controller = cast(Controller, LocalProxy(lambda: current_app.config["controller"]))
 
 
 class MappingForm(FlaskForm):
     """Form for entering new mappings."""
 
-    source_prefix = StringField("Source Prefix", id="source_prefix")
-    source_id = StringField("Source ID", id="source_id")
-    source_name = StringField("Source Name", id="source_name")
-    target_prefix = StringField("Target Prefix", id="target_prefix")
-    target_id = StringField("Target ID", id="target_id")
-    target_name = StringField("Target Name", id="target_name")
+    subject_prefix = StringField("Subject Prefix", id="subject_prefix")
+    subject_id = StringField("Subject ID", id="subject_id")
+    subject_name = StringField("Subject Label", id="subject_name")
+    object_prefix = StringField("Object Prefix", id="object_prefix")
+    object_id = StringField("Object ID", id="object_id")
+    object_name = StringField("Object Label", id="object_name")
     submit = SubmitField("Add")
+
+    def get_subject(self) -> NormalizedNamableReference:
+        """Get the subject."""
+        return NormalizedNamableReference(
+            prefix=self.data["subject_prefix"],
+            identifier=self.data["subject_id"],
+            name=self.data["subject_name"],
+        )
+
+    def get_object(self) -> NormalizedNamableReference:
+        """Get the object."""
+        return NormalizedNamableReference(
+            prefix=self.data["object_prefix"],
+            identifier=self.data["object_id"],
+            name=self.data["object_name"],
+        )
 
 
 blueprint = flask.Blueprint("ui", __name__)
 
 
 @blueprint.route("/home")
-def home():
+def home() -> str:
     """Serve the home page."""
     state = State.from_flask_globals()
     form = MappingForm()
@@ -784,14 +773,15 @@ def home():
 
 
 @blueprint.route("/")
-def summary():
+def summary() -> str:
     """Serve the summary page."""
     state = State.from_flask_globals()
     state.limit = None
     predictions = CONTROLLER.predictions_from_state(state)
     counter = Counter(
         itertools.chain.from_iterable(
-            (mapping["source prefix"], mapping["target prefix"]) for _, mapping in predictions
+            [mapping[key].split(":", maxsplit=1)[0] for key in ["subject_id", "object_id"]]
+            for _, mapping in predictions
         )
     )
     rows = []
@@ -810,29 +800,33 @@ def summary():
 
 
 @blueprint.route("/add_mapping", methods=["POST"])
-def add_mapping():
+def add_mapping() -> werkzeug.Response:
     """Add a new mapping manually."""
     if (user_id := CONTROLLER.user_id) is None:
         flask.flash(LOGIN_REQUIRED_MSG, category="warning")
     else:
         form = MappingForm()
         if form.is_submitted():
-            CONTROLLER.add_mapping(
-                form.data["source_prefix"],
-                form.data["source_id"],
-                form.data["source_name"],
-                form.data["target_prefix"],
-                form.data["target_id"],
-                form.data["target_name"],
-                user_id,
-            )
+            try:
+                subject = form.get_subject()
+            except ValidationError as e:
+                flask.flash(f"Problem with subject CURIE {e}", category="warning")
+                return _go_home()
+
+            try:
+                obj = form.get_object()
+            except ValidationError as e:
+                flask.flash(f"Problem with object CURIE {e}", category="warning")
+                return _go_home()
+
+            CONTROLLER.add_mapping(subject, obj, user_id)
         else:
             flask.flash("missing form data", category="warning")
     return _go_home()
 
 
 @blueprint.route("/add_mapping")
-def _add_mapping():
+def _add_mapping() -> werkzeug.Response:
     """Handle when POST method becomes a GET after auth redirections."""
     flask.flash(
         (
@@ -845,7 +839,7 @@ def _add_mapping():
 
 
 @blueprint.route("/clear_user_state")
-def clear_user_state():
+def clear_user_state() -> werkzeug.Response:
     """Clear all user-specific state, then redirect to the home page."""
     if (user_id := CONTROLLER.user_id) is None:
         flask.flash(LOGIN_REQUIRED_MSG, category="warning")
@@ -855,7 +849,7 @@ def clear_user_state():
 
 
 @blueprint.route("/publish")
-def publish_pr():
+def publish_pr() -> werkzeug.Response:
     """Publish a PR, then clear user state and redirect to the home page."""
     if (user_id := CONTROLLER.user_id) is None:
         flask.flash(LOGIN_REQUIRED_MSG, category="warning")
@@ -888,10 +882,10 @@ def publish_pr():
         shutil.rmtree(tmp_path.joinpath(".git", "hooks"), ignore_errors=True)
 
         resources_dir = tmp_path.joinpath("src", "biomappings", "resources")
-        true_path = resources_dir.joinpath("mappings.tsv")
-        false_path = resources_dir.joinpath("incorrect.tsv")
-        unsure_path = resources_dir.joinpath("unsure.tsv")
-        predictions_path = resources_dir.joinpath("predictions.tsv")
+        true_path = resources_dir.joinpath("positive.sssom.tsv")
+        false_path = resources_dir.joinpath("negative.sssom.tsv")
+        unsure_path = resources_dir.joinpath("unsure.sssom.tsv")
+        predictions_path = resources_dir.joinpath("predictions.sssom.tsv")
 
         append_true_mappings(true_mappings, path=true_path)
         append_false_mappings(false_mappings, path=false_path)
@@ -930,7 +924,7 @@ INCORRECT = {"no", "nope", "false", "f", "nada", "nein", "incorrect", "negative"
 UNSURE = {"unsure", "maybe", "idk", "idgaf", "idgaff"}
 
 
-def _normalize_mark(value: str) -> str:
+def _normalize_mark(value: str) -> MarkType:
     value = value.lower()
     if value in CORRECT:
         return "correct"
@@ -946,7 +940,7 @@ def _normalize_mark(value: str) -> str:
 
 
 @blueprint.route("/mark/<int:line>/<value>")
-def mark(line: int, value: str):
+def mark(line: int, value: str) -> werkzeug.Response:
     """Mark the given line as correct or not."""
     if (user_id := CONTROLLER.user_id) is None:
         flask.flash(LOGIN_REQUIRED_MSG, category="warning")
@@ -956,7 +950,7 @@ def mark(line: int, value: str):
     return _go_home()
 
 
-def _go_home():
+def _go_home() -> werkzeug.Response:
     state = State.from_flask_globals()
     return flask.redirect(url_for_state(".home", state))
 
