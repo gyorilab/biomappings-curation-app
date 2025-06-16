@@ -47,7 +47,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/zstd-1.5.7-hb8e6e7a_2.conda
       - pypi: https://files.pythonhosted.org/packages/78/b6/6307fbef88d9b5ee7421e68d78a9f162e0da4900bc5f5793f6d3d0e34fb8/annotated_types-0.7.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/a1/ee/48ca1a7c89ffec8b6a0c5d02b89c305671d5ffd8d3c94acf8b8c408575bb/anyio-4.9.0-py3-none-any.whl
-      - pypi: git+https://github.com/biopragmatics/biomappings.git?rev=master#1e48015c0f70d460b746ddea27b8262ac77e8832
+      - pypi: git+https://github.com/biopragmatics/biomappings.git?rev=1e48015c0f70d460b746ddea27b8262ac77e8832#1e48015c0f70d460b746ddea27b8262ac77e8832
       - pypi: https://files.pythonhosted.org/packages/ae/c2/52adcdd21f7755866c9795a82336760a767368b09772bd8f4508b3383a43/bioregistry-0.12.16-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/10/cb/f2ad4230dc2eb1a74edf38f1a38b9b52277f75bef262d8908e60d957e13c/blinker-1.9.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/a6/bd/a61a69ba3595735049f5acdcaa049a6c731be4b083dad4ae4b3a85b21e90/bootstrap_flask-2.5.0-py3-none-any.whl
@@ -134,7 +134,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/zstd-1.5.7-hbcf94c1_2.conda
       - pypi: https://files.pythonhosted.org/packages/78/b6/6307fbef88d9b5ee7421e68d78a9f162e0da4900bc5f5793f6d3d0e34fb8/annotated_types-0.7.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/a1/ee/48ca1a7c89ffec8b6a0c5d02b89c305671d5ffd8d3c94acf8b8c408575bb/anyio-4.9.0-py3-none-any.whl
-      - pypi: git+https://github.com/biopragmatics/biomappings.git?rev=master#1e48015c0f70d460b746ddea27b8262ac77e8832
+      - pypi: git+https://github.com/biopragmatics/biomappings.git?rev=1e48015c0f70d460b746ddea27b8262ac77e8832#1e48015c0f70d460b746ddea27b8262ac77e8832
       - pypi: https://files.pythonhosted.org/packages/ae/c2/52adcdd21f7755866c9795a82336760a767368b09772bd8f4508b3383a43/bioregistry-0.12.16-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/10/cb/f2ad4230dc2eb1a74edf38f1a38b9b52277f75bef262d8908e60d957e13c/blinker-1.9.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/a6/bd/a61a69ba3595735049f5acdcaa049a6c731be4b083dad4ae4b3a85b21e90/bootstrap_flask-2.5.0-py3-none-any.whl
@@ -213,7 +213,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/zstd-1.5.7-h6491c7d_2.conda
       - pypi: https://files.pythonhosted.org/packages/78/b6/6307fbef88d9b5ee7421e68d78a9f162e0da4900bc5f5793f6d3d0e34fb8/annotated_types-0.7.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/a1/ee/48ca1a7c89ffec8b6a0c5d02b89c305671d5ffd8d3c94acf8b8c408575bb/anyio-4.9.0-py3-none-any.whl
-      - pypi: git+https://github.com/biopragmatics/biomappings.git?rev=master#1e48015c0f70d460b746ddea27b8262ac77e8832
+      - pypi: git+https://github.com/biopragmatics/biomappings.git?rev=1e48015c0f70d460b746ddea27b8262ac77e8832#1e48015c0f70d460b746ddea27b8262ac77e8832
       - pypi: https://files.pythonhosted.org/packages/ae/c2/52adcdd21f7755866c9795a82336760a767368b09772bd8f4508b3383a43/bioregistry-0.12.16-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/10/cb/f2ad4230dc2eb1a74edf38f1a38b9b52277f75bef262d8908e60d957e13c/blinker-1.9.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/a6/bd/a61a69ba3595735049f5acdcaa049a6c731be4b083dad4ae4b3a85b21e90/bootstrap_flask-2.5.0-py3-none-any.whl
@@ -306,7 +306,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/zstd-1.5.7-hb8e6e7a_2.conda
       - pypi: https://files.pythonhosted.org/packages/78/b6/6307fbef88d9b5ee7421e68d78a9f162e0da4900bc5f5793f6d3d0e34fb8/annotated_types-0.7.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/a1/ee/48ca1a7c89ffec8b6a0c5d02b89c305671d5ffd8d3c94acf8b8c408575bb/anyio-4.9.0-py3-none-any.whl
-      - pypi: git+https://github.com/biopragmatics/biomappings.git?rev=master#1e48015c0f70d460b746ddea27b8262ac77e8832
+      - pypi: git+https://github.com/biopragmatics/biomappings.git?rev=1e48015c0f70d460b746ddea27b8262ac77e8832#1e48015c0f70d460b746ddea27b8262ac77e8832
       - pypi: https://files.pythonhosted.org/packages/ae/c2/52adcdd21f7755866c9795a82336760a767368b09772bd8f4508b3383a43/bioregistry-0.12.16-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/10/cb/f2ad4230dc2eb1a74edf38f1a38b9b52277f75bef262d8908e60d957e13c/blinker-1.9.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/a6/bd/a61a69ba3595735049f5acdcaa049a6c731be4b083dad4ae4b3a85b21e90/bootstrap_flask-2.5.0-py3-none-any.whl
@@ -410,7 +410,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/zstd-1.5.7-hbcf94c1_2.conda
       - pypi: https://files.pythonhosted.org/packages/78/b6/6307fbef88d9b5ee7421e68d78a9f162e0da4900bc5f5793f6d3d0e34fb8/annotated_types-0.7.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/a1/ee/48ca1a7c89ffec8b6a0c5d02b89c305671d5ffd8d3c94acf8b8c408575bb/anyio-4.9.0-py3-none-any.whl
-      - pypi: git+https://github.com/biopragmatics/biomappings.git?rev=master#1e48015c0f70d460b746ddea27b8262ac77e8832
+      - pypi: git+https://github.com/biopragmatics/biomappings.git?rev=1e48015c0f70d460b746ddea27b8262ac77e8832#1e48015c0f70d460b746ddea27b8262ac77e8832
       - pypi: https://files.pythonhosted.org/packages/ae/c2/52adcdd21f7755866c9795a82336760a767368b09772bd8f4508b3383a43/bioregistry-0.12.16-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/10/cb/f2ad4230dc2eb1a74edf38f1a38b9b52277f75bef262d8908e60d957e13c/blinker-1.9.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/a6/bd/a61a69ba3595735049f5acdcaa049a6c731be4b083dad4ae4b3a85b21e90/bootstrap_flask-2.5.0-py3-none-any.whl
@@ -506,7 +506,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/zstd-1.5.7-h6491c7d_2.conda
       - pypi: https://files.pythonhosted.org/packages/78/b6/6307fbef88d9b5ee7421e68d78a9f162e0da4900bc5f5793f6d3d0e34fb8/annotated_types-0.7.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/a1/ee/48ca1a7c89ffec8b6a0c5d02b89c305671d5ffd8d3c94acf8b8c408575bb/anyio-4.9.0-py3-none-any.whl
-      - pypi: git+https://github.com/biopragmatics/biomappings.git?rev=master#1e48015c0f70d460b746ddea27b8262ac77e8832
+      - pypi: git+https://github.com/biopragmatics/biomappings.git?rev=1e48015c0f70d460b746ddea27b8262ac77e8832#1e48015c0f70d460b746ddea27b8262ac77e8832
       - pypi: https://files.pythonhosted.org/packages/ae/c2/52adcdd21f7755866c9795a82336760a767368b09772bd8f4508b3383a43/bioregistry-0.12.16-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/10/cb/f2ad4230dc2eb1a74edf38f1a38b9b52277f75bef262d8908e60d957e13c/blinker-1.9.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/a6/bd/a61a69ba3595735049f5acdcaa049a6c731be4b083dad4ae4b3a85b21e90/bootstrap_flask-2.5.0-py3-none-any.whl
@@ -646,7 +646,7 @@ packages:
   - sphinx-rtd-theme ; extra == 'doc'
   - sphinx-autodoc-typehints>=1.2.0 ; extra == 'doc'
   requires_python: '>=3.9'
-- pypi: git+https://github.com/biopragmatics/biomappings.git?rev=master#1e48015c0f70d460b746ddea27b8262ac77e8832
+- pypi: git+https://github.com/biopragmatics/biomappings.git?rev=1e48015c0f70d460b746ddea27b8262ac77e8832#1e48015c0f70d460b746ddea27b8262ac77e8832
   name: biomappings
   version: 0.3.8.dev0
   requires_dist:
