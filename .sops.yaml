@@ -19,10 +19,13 @@ _defaults:
     #   age1aq6qcpzwr7tfcvz5dwp23u2mzrqzy0lzugksefuz20xl6ttxsy8scqeks6
     # Ben Gyori
     #   age104seklsd3x24vavq9vwhafnz52k22xdee433v2q3m38pstsjuvxqjq563s
+    # Klas Karis
+    #   age1jwpm6fyr3wk6cp60k34vaee4tzl8svth44msckqwj52wjxw94f6qg8ut4w
     age: >-
       age1497550v8uvflluuhdsnayc05um6vllheguhnzlm0lrd9ctcarcequr5rm6,
       age1aq6qcpzwr7tfcvz5dwp23u2mzrqzy0lzugksefuz20xl6ttxsy8scqeks6,
-      age104seklsd3x24vavq9vwhafnz52k22xdee433v2q3m38pstsjuvxqjq563s
+      age104seklsd3x24vavq9vwhafnz52k22xdee433v2q3m38pstsjuvxqjq563s,
+      age1jwpm6fyr3wk6cp60k34vaee4tzl8svth44msckqwj52wjxw94f6qg8ut4w
 
 
 creation_rules:
