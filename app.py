@@ -11,7 +11,7 @@ import shutil
 import subprocess
 import uuid
 from collections import Counter
-from collections.abc import Callable, Generator, Iterable, Iterator, Mapping as MappingType
+from collections.abc import Callable, Generator, Iterable, Iterator
 from copy import deepcopy
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -47,16 +47,23 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from wtforms import StringField, SubmitField
 
 from biomappings.resources import (
+    SemanticMapping,
     append_false_mappings,
     append_true_mappings,
     append_unsure_mappings,
     load_predictions,
     write_predictions,
 )
+from biomappings.utils import (
+    BROAD_MATCH,
+    EXACT_MATCH,
+    MANUAL_MAPPING_CURATION,
+    NARROW_MATCH,
+)
 from bioregistry import NormalizedNamableReference, get_resource
+from curies import NamableReference
 
 MarkType = Literal["correct", "incorrect", "unsure", "broad", "narrow"]
-PredictionDict = MappingType[str, Any]
 
 AUTHOR_EMAIL = os.environ["COMMITTER_EMAIL"]
 BASE_BRANCH = os.environ["BASE_BRANCH"]
@@ -177,7 +184,7 @@ class Mapping(db.Model):  # type: ignore[name-defined]
     author_id: Mapped[str]
     mapping_justification: Mapped[str]
     mapping_tool: Mapped[str | None]
-    confidence: Mapped[str | None]
+    confidence: Mapped[float | None]
     predicate_modifier: Mapped[str | None]
 
     __table_args__ = (
@@ -234,7 +241,7 @@ class State(BaseModel):
         )
 
 
-def _get_bool_arg(name: str, default: bool | None = None) -> bool | None:
+def _get_bool_arg(name: str, default: bool | None = None) -> bool | None:  # noqa: FBT001
     value = flask.request.args.get(name, type=str)
     if value is not None:
         return value.lower() in {"true", "t"}
@@ -290,7 +297,7 @@ class Controller:
             ),
         )
 
-    def predictions_from_state(self, state: State) -> Iterable[tuple[int, PredictionDict]]:
+    def predictions_from_state(self, state: State) -> Iterable[tuple[int, SemanticMapping]]:
         """Iterate over predictions from a state instance."""
         return self.predictions(
             offset=state.offset,
@@ -322,7 +329,7 @@ class Controller:
         same_text: bool | None = None,
         provenance: str | None = None,
         user_id: str | None = None,
-    ) -> Iterable[tuple[int, PredictionDict]]:
+    ) -> Iterable[tuple[int, SemanticMapping]]:
         """Iterate over predictions.
 
         :param offset: If given, offset the iteration by this number
@@ -398,7 +405,7 @@ class Controller:
         target_prefix: str | None = None,
         prefix: str | None = None,
         sort: str | None = None,
-        same_text: bool | None = None,
+        same_text: bool | None = None,  # noqa: FBT001
         provenance: str | None = None,
         user_id: str | None = None,
     ) -> int:
@@ -426,59 +433,81 @@ class Controller:
         target_prefix: str | None = None,
         prefix: str | None = None,
         sort: str | None = None,
-        same_text: bool | None = None,
+        same_text: bool | None = None,  # noqa: FBT001
         provenance: str | None = None,
         user_id: str | None = None,
-    ) -> Iterator[tuple[int, PredictionDict]]:
-        it: Iterable[tuple[int, PredictionDict]] = enumerate(self._predictions)
+    ) -> Iterator[tuple[int, SemanticMapping]]:
+        it: Iterable[tuple[int, SemanticMapping]] = enumerate(self._predictions)
 
         if query is not None:
             it = self._help_filter(
                 query,
                 it,
-                {
-                    "subject_id",
-                    "subject_label",
-                    "object_id",
-                    "object_label",
-                    "mapping_tool",
-                },
+                lambda mapping: [
+                    mapping.subject.curie,
+                    mapping.subject.name,
+                    mapping.object.curie,
+                    mapping.object.name,
+                    mapping.mapping_tool,
+                ],
             )
         if source_prefix is not None:
             it = self._help_filter(
-                f"{source_prefix}:", it, {"subject_id"}, op_element_query=startswith
+                f"{source_prefix}:",
+                it,
+                lambda mapping: [mapping.subject.curie],
+                op_element_query=startswith,
             )
         if source_query is not None:
-            it = self._help_filter(source_query, it, {"subject_id", "subject_label"})
+            it = self._help_filter(
+                source_query,
+                it,
+                lambda mapping: [mapping.subject.curie, mapping.subject.name],
+            )
         if target_query is not None:
-            it = self._help_filter(target_query, it, {"object_id", "object_label"})
+            it = self._help_filter(
+                target_query,
+                it,
+                lambda mapping: [mapping.object.curie, mapping.object.name],
+            )
         if target_prefix is not None:
             it = self._help_filter(
-                f"{target_prefix}:", it, {"object_id"}, op_element_query=startswith
+                f"{target_prefix}:",
+                it,
+                lambda mapping: [mapping.object.curie],
+                op_element_query=startswith,
             )
         if prefix is not None:
             it = self._help_filter(
-                f"{prefix}:", it, {"subject_id", "object_id"}, op_element_query=startswith
+                f"{prefix}:",
+                it,
+                lambda mapping: [mapping.subject.curie, mapping.object.curie],
+                op_element_query=startswith,
             )
         if provenance is not None:
-            it = self._help_filter(provenance, it, {"mapping_tool"})
+            it = self._help_filter(provenance, it, lambda mapping: [mapping.mapping_tool])
+
+        def _get_confidence(t: tuple[int, SemanticMapping]) -> float:
+            return t[1].confidence or 0.0
 
         if sort is not None:
             if sort == "desc":
-                it = iter(sorted(it, key=lambda l_p: l_p[1]["confidence"], reverse=True))
+                it = iter(sorted(it, key=_get_confidence, reverse=True))
             elif sort == "asc":
-                it = iter(sorted(it, key=lambda l_p: l_p[1]["confidence"], reverse=False))
+                it = iter(sorted(it, key=_get_confidence, reverse=False))
             elif sort == "object":
-                it = iter(sorted(it, key=lambda l_p: l_p[1]["target_id"]))
+                it = iter(sorted(it, key=lambda l_p: l_p[1].object.curie))
             else:
-                raise ValueError
+                msg = f"unknown sort type: {sort}"
+                raise ValueError(msg)
 
         if same_text:
             it = (
-                (line, prediction)
-                for line, prediction in it
-                if prediction["subject_label"].casefold() == prediction["object_label"].casefold()
-                and prediction["predicate_id"] == "skos:exactMatch"
+                (line, mapping)
+                for line, mapping in it
+                if mapping.subject.name is not None and mapping.object.name is not None
+                if mapping.subject.name.casefold() == mapping.object.name.casefold()
+                and mapping.predicate.curie == "skos:exactMatch"
             )
 
         marked = set()
@@ -490,19 +519,23 @@ class Controller:
                 )
             )
 
-        return ((line, prediction) for line, prediction in it if line not in marked)
+        return ((line, mapping) for line, mapping in it if line not in marked)
 
     @staticmethod
     def _help_filter(
         query: str,
-        it: Iterable[tuple[int, PredictionDict]],
-        elements: set[str],
+        it: Iterable[tuple[int, SemanticMapping]],
+        func: Callable[[SemanticMapping], list[str | None]],
         op_element_query: Callable[[str, str], bool] = operator.contains,
-    ):
+    ) -> Iterable[tuple[int, SemanticMapping]]:
         query = query.casefold()
-        for line, prediction in it:
-            if any(op_element_query(prediction[element].casefold(), query) for element in elements):
-                yield line, prediction
+        for line, mapping in it:
+            if any(
+                op_element_query(element.casefold(), query)
+                for element in func(mapping)
+                if element is not None
+            ):
+                yield line, mapping
 
     @classmethod
     def get_prefix_display_name(cls, prefix: str) -> str:
@@ -568,11 +601,11 @@ class Controller:
                 line=None,
                 subject_id=subject.curie,
                 subject_label=subject.name,
-                predicate_id="skos:exactMatch",
+                predicate_id=EXACT_MATCH.curie,
                 object_id=obj.curie,
                 object_label=obj.name,
                 author_id=user_id,
-                mapping_justification="semapv:ManualMappingCuration",
+                mapping_justification=MANUAL_MAPPING_CURATION.curie,
                 mapping_tool=None,
                 confidence=None,
                 predicate_modifier=None,
@@ -596,35 +629,46 @@ class Controller:
         mappings = []
 
         for line, value in sorted(marks.items(), reverse=True):
-            prediction = deepcopy(self._predictions[line])
+            try:
+                mapping = deepcopy(self._predictions[line])
+            except IndexError as exc:
+                msg = (
+                    f"you tried popping the {line} element from the predictions list, which only "
+                    f"has {len(self._predictions):,} elements"
+                )
+                raise IndexError(msg) from exc
 
+            predicate = mapping.predicate
+            predicate_modifier = None
             # note these go backwards because of the way they are read
             if value == "broad":
-                value = "correct"  # noqa: PLW2901
-                prediction["predicate_id"] = "skos:narrowMatch"
+                kind = "correct"
+                predicate = NARROW_MATCH
             elif value == "narrow":
-                value = "correct"  # noqa: PLW2901
-                prediction["predicate_id"] = "skos:broadMatch"
-
-            if value != "incorrect":
-                prediction["predicate_modifier"] = ""
+                kind = "correct"
+                predicate = BROAD_MATCH
+            elif value == "incorrect":
+                kind = "incorrect"
+                predicate_modifier = "Not"
+            elif value == "unsure":
+                kind = "unsure"
             else:
-                prediction["predicate_modifier"] = "Not"
+                raise NotImplementedError
 
             mappings.append(
                 Mapping(
-                    kind=value,
+                    kind=kind,
                     line=line,
-                    subject_id=prediction["subject_id"],
-                    subject_label=prediction["subject_label"],
-                    predicate_id=prediction["predicate_id"],
-                    object_id=prediction["object_id"],
-                    object_label=prediction["object_label"],
+                    subject_id=mapping.subject.curie,
+                    subject_label=mapping.subject.name,
+                    predicate_id=predicate.curie,
+                    object_id=mapping.object.curie,
+                    object_label=mapping.object.name,
                     author_id=user_id,
-                    mapping_justification="semapv:ManualMappingCuration",
-                    mapping_tool=prediction["mapping_tool"],
-                    confidence=prediction["confidence"],
-                    predicate_modifier=prediction["predicate_modifier"],
+                    mapping_justification=MANUAL_MAPPING_CURATION.curie,
+                    mapping_tool=mapping.mapping_tool,
+                    confidence=mapping.confidence,
+                    predicate_modifier=predicate_modifier,
                 )
             )
 
@@ -669,24 +713,22 @@ class Controller:
         for mapping in db.session.query(Mapping).filter(Mapping.author_id == user_id):
             kind = mapping.kind
             line = mapping.line
-            dict_ = {
-                "subject_id": mapping.subject_id,
-                "subject_label": mapping.subject_label,
-                "predicate_id": mapping.predicate_id,
-                "object_id": mapping.object_id,
-                "object_label": mapping.object_label,
-                "mapping_justification": mapping.mapping_justification,
-                "author_id": mapping.author_id,
-                "mapping_tool": mapping.mapping_tool,
-                "confidence": mapping.confidence,
-                "predicate_modifier": mapping.predicate_modifier,
-            }
+            mapping_ = SemanticMapping(
+                subject=NamableReference.from_curie(mapping.subject_id, name=mapping.subject_label),
+                predicate=NamableReference.from_curie(mapping.predicate_id),
+                object=NamableReference.from_curie(mapping.object_id, name=mapping.object_label),
+                mapping_justification=NamableReference.from_curie(mapping.mapping_justification),
+                author=NamableReference.from_curie(mapping.author_id),
+                mapping_tool=mapping.mapping_tool,
+                predicate_modifier=mapping.predicate_modifier,  # type: ignore[arg-type]
+                confidence=mapping.confidence,
+            )
             if kind == "correct":
-                true_mappings.append(dict_)
+                true_mappings.append(mapping_)
             elif kind == "incorrect":
-                false_mappings.append(dict_)
+                false_mappings.append(mapping_)
             elif kind == "unsure":
-                unsure_mappings.append(dict_)
+                unsure_mappings.append(mapping_)
             else:
                 raise ValueError
             if line is not None:
@@ -696,7 +738,7 @@ class Controller:
             true_mappings,
             false_mappings,
             unsure_mappings,
-            (prediction for line, prediction in enumerate(self._predictions) if line not in marked),
+            (mapping_ for line, mapping_ in enumerate(self._predictions) if line not in marked),
         )
 
     @property
@@ -780,8 +822,7 @@ def summary() -> str:
     predictions = CONTROLLER.predictions_from_state(state)
     counter = Counter(
         itertools.chain.from_iterable(
-            [mapping[key].split(":", maxsplit=1)[0] for key in ["subject_id", "object_id"]]
-            for _, mapping in predictions
+            (mapping.subject.prefix, mapping.object.prefix) for _, mapping in predictions
         )
     )
     rows = []
@@ -887,9 +928,9 @@ def publish_pr() -> werkzeug.Response:
         unsure_path = resources_dir.joinpath("unsure.sssom.tsv")
         predictions_path = resources_dir.joinpath("predictions.sssom.tsv")
 
-        append_true_mappings(true_mappings, path=true_path)
-        append_false_mappings(false_mappings, path=false_path)
-        append_unsure_mappings(unsure_mappings, path=unsure_path)
+        append_true_mappings(true_mappings, path=true_path, sort=True, standardize=False)
+        append_false_mappings(false_mappings, path=false_path, sort=True, standardize=False)
+        append_unsure_mappings(unsure_mappings, path=unsure_path, sort=True, standardize=False)
         write_predictions(predicted_mappings, path=predictions_path)
 
         run = functools.partial(
