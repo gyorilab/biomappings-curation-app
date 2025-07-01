@@ -505,8 +505,9 @@ class Controller:
             it = (
                 (line, mapping)
                 for line, mapping in it
-                if mapping.subject.name is not None and mapping.object.name is not None
-                if mapping.subject.name.casefold() == mapping.object.name.casefold()
+                if mapping.subject.name is not None
+                and mapping.object.name is not None
+                and mapping.subject.name.casefold() == mapping.object.name.casefold()
                 and mapping.predicate.curie == "skos:exactMatch"
             )
 
