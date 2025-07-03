@@ -16,6 +16,10 @@
 	servers :443 {
 		name https
 		listener_wrappers {
+			# Proxy protocol v2 is enabled for the network load balancer target group.
+			#
+			# https://docs.aws.amazon.com/elasticloadbalancing/latest/network/load-balancer-target-groups.html#target-group-attributes
+			# https://us-east-1.console.aws.amazon.com/ec2/home?region=us-east-1#TargetGroupEditAttributes:targetGroupArn=arn:aws:elasticloadbalancing:us-east-1:699475958146:targetgroup/biomappings-curation-app-tg/a19e85a1ec2de081
 			proxy_protocol {
 				allow 192.168.0.0/16 172.16.0.0/12 10.0.0.0/8 127.0.0.0/8 fd00::/8 ::1/128
 				fallback_policy reject
