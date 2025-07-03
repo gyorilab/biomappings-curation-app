@@ -651,6 +651,8 @@ class Controller:
             elif value == "incorrect":
                 kind = "incorrect"
                 predicate_modifier = "Not"
+            elif value == "correct":
+                kind = "correct"
             elif value == "unsure":
                 kind = "unsure"
             else:
