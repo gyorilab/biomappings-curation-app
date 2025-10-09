@@ -18,7 +18,7 @@ git = { version = '>=2.49.0' }
 python = { version = '>=3.13.5,<3.14' }
 
 [tool.pixi.pypi-dependencies]
-biomappings = { version = '>=0.4.1' }
+biomappings = { version = '==0.4.2' }
 bioregistry = { version = '>=0.12.21' }
 bootstrap-flask = { version = '>=2.5.0' }
 flask = { version = '>=3.1.1' }
@@ -174,6 +174,7 @@ sops exec-env --same-process -- "$SECRET_FILE" '\
       }; f\
     '"'"' \
     --depth=1 \
+    --branch=v0.4.2 \
     --origin=origin \
     -- \
     "${REPOSITORY}" \
