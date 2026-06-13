@@ -46,22 +46,12 @@ from werkzeug.local import LocalProxy
 from werkzeug.middleware.proxy_fix import ProxyFix
 from wtforms import StringField, SubmitField
 
-from biomappings.resources import (
-    SemanticMapping,
-    append_false_mappings,
-    append_true_mappings,
-    append_unsure_mappings,
-    load_predictions,
-    write_predictions,
-)
-from biomappings.utils import (
-    BROAD_MATCH,
-    EXACT_MATCH,
-    MANUAL_MAPPING_CURATION,
-    NARROW_MATCH,
-)
+from biomappings.utils import DEFAULT_REPO
 from bioregistry import NormalizedNamableReference, get_resource
 from curies import NamableReference
+from curies.vocabulary import broad_match, exact_match, manual_mapping_curation, narrow_match
+from sssom_curator import Repository
+from sssom_pydantic import MappingTool, SemanticMapping
 
 MarkType = Literal["correct", "incorrect", "unsure", "broad", "narrow"]
 
@@ -282,6 +272,24 @@ def get_app(biomappings_path: Path) -> flask.Flask:
     return app_
 
 
+def repository_for(biomappings_path: Path) -> Repository:
+    """Build a :class:`Repository` pointing at a cloned Biomappings checkout.
+
+    Reuses the metadata (``mapping_set``, ``purl_base``, ...) configured on the
+    installed Biomappings ``DEFAULT_REPO`` but points the SSSOM paths at the given
+    Git checkout instead of the installed package's bundled resources.
+    """
+    resources = biomappings_path.joinpath("src", "biomappings", "resources")
+    return DEFAULT_REPO.model_copy(
+        update={
+            "predictions_path": resources.joinpath("predictions.sssom.tsv"),
+            "positives_path": resources.joinpath("positive.sssom.tsv"),
+            "negatives_path": resources.joinpath("negative.sssom.tsv"),
+            "unsure_path": resources.joinpath("unsure.sssom.tsv"),
+        }
+    )
+
+
 class Controller:
     """A module for interacting with the predictions and mappings."""
 
@@ -291,11 +299,8 @@ class Controller:
         :param biomappings_path: path to the Biomappings Git repository
         """
         self.biomappings_path = biomappings_path
-        self._predictions = load_predictions(
-            path=biomappings_path.joinpath(
-                "src", "biomappings", "resources", "predictions.sssom.tsv"
-            ),
-        )
+        self.repository = repository_for(biomappings_path)
+        self._predictions = self.repository.read_predicted_mappings()
 
     def predictions_from_state(self, state: State) -> Iterable[tuple[int, SemanticMapping]]:
         """Iterate over predictions from a state instance."""
@@ -448,7 +453,7 @@ class Controller:
                     mapping.subject.name,
                     mapping.object.curie,
                     mapping.object.name,
-                    mapping.mapping_tool,
+                    mapping.mapping_tool_name,
                 ],
             )
         if source_prefix is not None:
@@ -485,7 +490,7 @@ class Controller:
                 op_element_query=startswith,
             )
         if provenance is not None:
-            it = self._help_filter(provenance, it, lambda mapping: [mapping.mapping_tool])
+            it = self._help_filter(provenance, it, lambda mapping: [mapping.mapping_tool_name])
 
         def _get_confidence(t: tuple[int, SemanticMapping]) -> float:
             return t[1].confidence or 0.0
@@ -602,11 +607,11 @@ class Controller:
                 line=None,
                 subject_id=subject.curie,
                 subject_label=subject.name,
-                predicate_id=EXACT_MATCH.curie,
+                predicate_id=exact_match.curie,
                 object_id=obj.curie,
                 object_label=obj.name,
                 author_id=user_id,
-                mapping_justification=MANUAL_MAPPING_CURATION.curie,
+                mapping_justification=manual_mapping_curation.curie,
                 mapping_tool=None,
                 confidence=None,
                 predicate_modifier=None,
@@ -644,10 +649,10 @@ class Controller:
             # note these go backwards because of the way they are read
             if value == "broad":
                 kind = "correct"
-                predicate = NARROW_MATCH
+                predicate = narrow_match
             elif value == "narrow":
                 kind = "correct"
-                predicate = BROAD_MATCH
+                predicate = broad_match
             elif value == "incorrect":
                 kind = "incorrect"
                 predicate_modifier = "Not"
@@ -668,8 +673,8 @@ class Controller:
                     object_id=mapping.object.curie,
                     object_label=mapping.object.name,
                     author_id=user_id,
-                    mapping_justification=MANUAL_MAPPING_CURATION.curie,
-                    mapping_tool=mapping.mapping_tool,
+                    mapping_justification=manual_mapping_curation.curie,
+                    mapping_tool=mapping.mapping_tool_name,
                     confidence=mapping.confidence,
                     predicate_modifier=predicate_modifier,
                 )
@@ -720,9 +725,11 @@ class Controller:
                 subject=NamableReference.from_curie(mapping.subject_id, name=mapping.subject_label),
                 predicate=NamableReference.from_curie(mapping.predicate_id),
                 object=NamableReference.from_curie(mapping.object_id, name=mapping.object_label),
-                mapping_justification=NamableReference.from_curie(mapping.mapping_justification),
-                author=NamableReference.from_curie(mapping.author_id),
-                mapping_tool=mapping.mapping_tool,
+                justification=NamableReference.from_curie(mapping.mapping_justification),
+                authors=[NamableReference.from_curie(mapping.author_id)],
+                mapping_tool=(
+                    MappingTool(name=mapping.mapping_tool) if mapping.mapping_tool else None
+                ),
                 predicate_modifier=mapping.predicate_modifier,  # type: ignore[arg-type]
                 confidence=mapping.confidence,
             )
