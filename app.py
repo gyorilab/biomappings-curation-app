@@ -50,12 +50,29 @@ import sssom_pydantic
 from biomappings.utils import DEFAULT_REPO
 from bioregistry import NormalizedNamableReference, get_resource
 from curies import NamableReference
-from curies.vocabulary import broad_match, exact_match, manual_mapping_curation, narrow_match
+from curies.vocabulary import exact_match, manual_mapping_curation
 from sssom_curator import Repository
 from sssom_curator.constants import ensure_converter, insert
-from sssom_pydantic import MappingTool, SemanticMapping
+from sssom_pydantic import SemanticMapping
+from sssom_pydantic.process import MARK_TO_CALL, Mark as CurationMark, curate
 
 MarkType = Literal["correct", "incorrect", "unsure", "broad", "narrow"]
+
+#: Translate this app's UI mark values into the sssom-pydantic curation marks. Note that
+#: "broad"/"narrow" are intentionally swapped: in this UI they describe the object relative
+#: to the subject, which is the inverse of the stored match predicate.
+MARK_TRANSLATION: dict[MarkType, CurationMark] = {
+    "correct": "correct",
+    "incorrect": "incorrect",
+    "unsure": "unsure",
+    "broad": "NARROW",
+    "narrow": "BROAD",
+}
+
+#: Columns to drop when writing curations, matching sssom-curator's own curation web app.
+#: ``predicate_label`` in particular must be excluded, or a named predicate would add a
+#: whole new column to files that don't carry it.
+EXCLUDE_COLUMNS = ["record_id", "predicate_label"]
 
 AUTHOR_EMAIL = os.environ["COMMITTER_EMAIL"]
 BASE_BRANCH = os.environ["BASE_BRANCH"]
@@ -166,18 +183,18 @@ class UserMeta(db.Model):  # type: ignore[name-defined]
 class Mapping(db.Model):  # type: ignore[name-defined]
     __tablename__ = "mapping"
 
+    #: The curation call: "correct", "incorrect", or "unsure" (i.e. which file it lands in)
     kind: Mapped[str]
+    #: The prediction line this curation came from, or None for a manually-added mapping
     line: Mapped[int | None]
+    author_id: Mapped[str]
+    #: Identity columns, kept for the primary key and de-duplication
     subject_id: Mapped[str]
     subject_label: Mapped[str]
-    predicate_id: Mapped[str]
     object_id: Mapped[str]
     object_label: Mapped[str]
-    author_id: Mapped[str]
-    mapping_justification: Mapped[str]
-    mapping_tool: Mapped[str | None]
-    confidence: Mapped[float | None]
-    predicate_modifier: Mapped[str | None]
+    #: The fully-curated SemanticMapping, serialized so every SSSOM field is preserved
+    mapping_json: Mapped[str]
 
     __table_args__ = (
         PrimaryKeyConstraint(
@@ -599,28 +616,38 @@ class Controller:
         db.session.commit()
 
     @staticmethod
+    def _store_mapping(
+        curated: SemanticMapping, *, kind: str, line: int | None, user_id: str
+    ) -> Mapping:
+        """Build a DB row holding a fully-curated semantic mapping."""
+        return Mapping(
+            kind=kind,
+            line=line,
+            author_id=user_id,
+            subject_id=curated.subject.curie,
+            subject_label=curated.subject.name or "",
+            object_id=curated.object.curie,
+            object_label=curated.object.name or "",
+            mapping_json=curated.model_dump_json(),
+        )
+
+    @classmethod
     def add_mapping(
+        cls,
         subject: NormalizedNamableReference,
         obj: NormalizedNamableReference,
         user_id: str,
     ) -> None:
         """Add manually curated new mappings."""
-        db.session.add(
-            Mapping(
-                kind="correct",
-                line=None,
-                subject_id=subject.curie,
-                subject_label=subject.name,
-                predicate_id=exact_match.curie,
-                object_id=obj.curie,
-                object_label=obj.name,
-                author_id=user_id,
-                mapping_justification=manual_mapping_curation.curie,
-                mapping_tool=None,
-                confidence=None,
-                predicate_modifier=None,
-            )
+        curated = SemanticMapping(
+            subject=subject,
+            predicate=exact_match,
+            object=obj,
+            justification=manual_mapping_curation,
+            authors=[NamableReference.from_curie(user_id)],
+            mapping_date=datetime.datetime.now(tz=datetime.UTC).date(),
         )
+        db.session.add(cls._store_mapping(curated, kind="correct", line=None, user_id=user_id))
 
         user_meta = db.session.get(UserMeta, user_id) or UserMeta(user_id=user_id)
         user_meta.total_curated += 1
@@ -636,11 +663,12 @@ class Controller:
             .outerjoin(Mapping, (Mark.user_id == Mapping.author_id) & (Mark.line == Mapping.line))
             .filter(Mapping.line.is_(None))
         )
+        author = NamableReference.from_curie(user_id)
         mappings = []
 
         for line, value in sorted(marks.items(), reverse=True):
             try:
-                mapping = deepcopy(self._predictions[line])
+                source = self._predictions[line]
             except IndexError as exc:
                 msg = (
                     f"you tried popping the {line} element from the predictions list, which only "
@@ -648,40 +676,13 @@ class Controller:
                 )
                 raise IndexError(msg) from exc
 
-            predicate = mapping.predicate
-            predicate_modifier = None
-            # note these go backwards because of the way they are read
-            if value == "broad":
-                kind = "correct"
-                predicate = narrow_match
-            elif value == "narrow":
-                kind = "correct"
-                predicate = broad_match
-            elif value == "incorrect":
-                kind = "incorrect"
-                predicate_modifier = "Not"
-            elif value == "correct":
-                kind = "correct"
-            elif value == "unsure":
-                kind = "unsure"
-            else:
-                raise NotImplementedError
-
+            mark = MARK_TRANSLATION[cast(MarkType, value)]
+            # curate() (and review(), for "unsure") applies the canonical SSSOM transform:
+            # sets the manual-curation justification, the author/reviewer, the curation date,
+            # drops the prediction's confidence/tool, and adjusts the predicate/modifier.
+            curated = curate(source, authors=author, mark=mark)
             mappings.append(
-                Mapping(
-                    kind=kind,
-                    line=line,
-                    subject_id=mapping.subject.curie,
-                    subject_label=mapping.subject.name,
-                    predicate_id=predicate.curie,
-                    object_id=mapping.object.curie,
-                    object_label=mapping.object.name,
-                    author_id=user_id,
-                    mapping_justification=manual_mapping_curation.curie,
-                    mapping_tool=mapping.mapping_tool_name,
-                    confidence=mapping.confidence,
-                    predicate_modifier=predicate_modifier,
-                )
+                self._store_mapping(curated, kind=MARK_TO_CALL[mark], line=line, user_id=user_id)
             )
 
         db.session.add_all(mappings)
@@ -723,30 +724,17 @@ class Controller:
         marked = set()
 
         for mapping in db.session.query(Mapping).filter(Mapping.author_id == user_id):
-            kind = mapping.kind
-            line = mapping.line
-            mapping_ = SemanticMapping(
-                subject=NamableReference.from_curie(mapping.subject_id, name=mapping.subject_label),
-                predicate=NamableReference.from_curie(mapping.predicate_id),
-                object=NamableReference.from_curie(mapping.object_id, name=mapping.object_label),
-                justification=NamableReference.from_curie(mapping.mapping_justification),
-                authors=[NamableReference.from_curie(mapping.author_id)],
-                mapping_tool=(
-                    MappingTool(name=mapping.mapping_tool) if mapping.mapping_tool else None
-                ),
-                predicate_modifier=mapping.predicate_modifier,  # type: ignore[arg-type]
-                confidence=mapping.confidence,
-            )
-            if kind == "correct":
+            mapping_ = SemanticMapping.model_validate_json(mapping.mapping_json)
+            if mapping.kind == "correct":
                 true_mappings.append(mapping_)
-            elif kind == "incorrect":
+            elif mapping.kind == "incorrect":
                 false_mappings.append(mapping_)
-            elif kind == "unsure":
+            elif mapping.kind == "unsure":
                 unsure_mappings.append(mapping_)
             else:
                 raise ValueError
-            if line is not None:
-                marked.add(line)
+            if mapping.line is not None:
+                marked.add(mapping.line)
 
         return (
             true_mappings,
@@ -940,14 +928,21 @@ def publish_pr() -> werkzeug.Response:
         repo = repository_for(tmp_path)
         converter = ensure_converter()
 
-        # Append curations to the positive/negative/unsure files (each call sorts and
-        # de-duplicates the file). ``Repository`` has no unsure helper, so use ``insert``.
-        if true_mappings:
-            repo.append_positive_mappings(true_mappings, converter=converter)
-        if false_mappings:
-            repo.append_negative_mappings(false_mappings, converter=converter)
-        if unsure_mappings:
-            insert(repo.unsure_path, converter=converter, include_mappings=unsure_mappings)
+        # Append curations to the positive/negative/unsure files. ``insert`` sorts and
+        # de-duplicates each file in place; EXCLUDE_COLUMNS keeps us from introducing columns
+        # (notably predicate_label) that the files don't already carry.
+        for mappings, path in (
+            (true_mappings, repo.positives_path),
+            (false_mappings, repo.negatives_path),
+            (unsure_mappings, repo.unsure_path),
+        ):
+            if mappings:
+                insert(
+                    path,
+                    converter=converter,
+                    include_mappings=mappings,
+                    exclude_columns=EXCLUDE_COLUMNS,
+                )
 
         # Rewrite the predictions file without the curated rows, but only when some were
         # actually removed, to avoid a no-op reordering diff.
