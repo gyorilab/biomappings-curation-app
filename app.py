@@ -46,11 +46,13 @@ from werkzeug.local import LocalProxy
 from werkzeug.middleware.proxy_fix import ProxyFix
 from wtforms import StringField, SubmitField
 
+import sssom_pydantic
 from biomappings.utils import DEFAULT_REPO
 from bioregistry import NormalizedNamableReference, get_resource
 from curies import NamableReference
 from curies.vocabulary import broad_match, exact_match, manual_mapping_curation, narrow_match
 from sssom_curator import Repository
+from sssom_curator.constants import ensure_converter, insert
 from sssom_pydantic import MappingTool, SemanticMapping
 
 MarkType = Literal["correct", "incorrect", "unsure", "broad", "narrow"]
@@ -300,7 +302,9 @@ class Controller:
         """
         self.biomappings_path = biomappings_path
         self.repository = repository_for(biomappings_path)
-        self._predictions = self.repository.read_predicted_mappings()
+        self._predictions, _, self._predictions_metadata = sssom_pydantic.read(
+            self.repository.predictions_path
+        )
 
     def predictions_from_state(self, state: State) -> Iterable[tuple[int, SemanticMapping]]:
         """Iterate over predictions from a state instance."""
@@ -932,16 +936,30 @@ def publish_pr() -> werkzeug.Response:
         )
         shutil.rmtree(tmp_path.joinpath(".git", "hooks"), ignore_errors=True)
 
-        resources_dir = tmp_path.joinpath("src", "biomappings", "resources")
-        true_path = resources_dir.joinpath("positive.sssom.tsv")
-        false_path = resources_dir.joinpath("negative.sssom.tsv")
-        unsure_path = resources_dir.joinpath("unsure.sssom.tsv")
-        predictions_path = resources_dir.joinpath("predictions.sssom.tsv")
+        predicted_mappings = list(predicted_mappings)
+        repo = repository_for(tmp_path)
+        converter = ensure_converter()
 
-        append_true_mappings(true_mappings, path=true_path, sort=True, standardize=False)
-        append_false_mappings(false_mappings, path=false_path, sort=True, standardize=False)
-        append_unsure_mappings(unsure_mappings, path=unsure_path, sort=True, standardize=False)
-        write_predictions(predicted_mappings, path=predictions_path)
+        # Append curations to the positive/negative/unsure files (each call sorts and
+        # de-duplicates the file). ``Repository`` has no unsure helper, so use ``insert``.
+        if true_mappings:
+            repo.append_positive_mappings(true_mappings, converter=converter)
+        if false_mappings:
+            repo.append_negative_mappings(false_mappings, converter=converter)
+        if unsure_mappings:
+            insert(repo.unsure_path, converter=converter, include_mappings=unsure_mappings)
+
+        # Rewrite the predictions file without the curated rows, but only when some were
+        # actually removed, to avoid a no-op reordering diff.
+        if len(predicted_mappings) != len(CONTROLLER._predictions):
+            sssom_pydantic.write(
+                predicted_mappings,
+                repo.predictions_path,
+                metadata=CONTROLLER._predictions_metadata,
+                converter=converter,
+                drop_duplicates=True,
+                sort=True,
+            )
 
         run = functools.partial(
             subprocess.run,
