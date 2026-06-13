@@ -177,7 +177,7 @@ sops exec-env --same-process -- "$SECRET_FILE" '\
       }; f\
     '"'"' \
     --depth=1 \
-    --branch=v0.5.5 \
+    --branch=main \
     --origin=origin \
     -- \
     "${REPOSITORY}" \
