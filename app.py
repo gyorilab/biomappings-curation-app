@@ -566,20 +566,23 @@ class Controller:
 
     @classmethod
     def get_prefix_display_name(cls, prefix: str) -> str:
-        """Return display name for a given prefix."""
+        """Return display name for a given prefix.
+
+        Falls back to the prefix itself if it is not registered in Bioregistry.
+        """
         resource = get_resource(prefix)
         if resource is None:
-            raise TypeError
+            return prefix
         if (name := resource.get_name()) is not None:
             return name
         return prefix
 
     @classmethod
     def get_logo_url(cls, prefix: str) -> str | None:
-        """Return logo URL for a given prefix."""
+        """Return logo URL for a given prefix, or ``None`` if unavailable."""
         resource = get_resource(prefix)
         if resource is None:
-            raise TypeError
+            return None
         return resource.get_logo()
 
     @property
